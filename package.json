@@ -1,0 +1,49 @@
+{
+  "name": "@kite-01/contracts",
+  "description": "Contracts for Kite",
+  "license": "MIT",
+  "version": "1.0.1",
+  "type": "module",
+  "keywords": [
+    "kite",
+    "contracts",
+    "factory"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kite-01/contracts"
+  },
+  "files": [
+    "contracts",
+    "typechain",
+    "artifacts/contracts/**/*.json",
+    "!artifacts/contracts/test/**/*"
+  ],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "compile": "hardhat compile",
+    "build": "hardhat build",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "clean": "hardhat clean",
+    "deploy-factory": "hardhat ignition deploy ignition/modules/KiteFactory.ts --parameters ignition/parameters/KiteFactory.json",
+    "deploy-factory:mainnet": "npm run deploy-factory -- --network mainnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.8",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@nomicfoundation/hardhat-typechain": "^3.1.1",
+    "@types/node": "^22.20.4",
+    "forge-std": "github:foundry-rs/forge-std#v1.16.2",
+    "hardhat": "^3.18.0",
+    "typescript": "~6.0.3",
+    "viem": "^2.56.9"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1",
+    "@uniswap/swap-router-contracts": "^1.3.1",
+    "@uniswap/v3-periphery": "^1.4.4"
+  }
+}
