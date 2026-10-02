@@ -48,14 +48,20 @@
       },
       {
         "indexed": true,
-        "internalType": "address",
-        "name": "recipient",
-        "type": "address"
+        "internalType": "bytes32",
+        "name": "feeId",
+        "type": "bytes32"
       },
       {
         "indexed": true,
         "internalType": "address",
         "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "recipient",
         "type": "address"
       },
       {

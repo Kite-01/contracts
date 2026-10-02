@@ -30,8 +30,9 @@ interface IKite {
 
     event FeePaid(
         bytes32 indexed transferId,
-        address indexed recipient,
+        bytes32 indexed feeId,
         address indexed token,
+        address recipient,
         uint256 amount
     );
 

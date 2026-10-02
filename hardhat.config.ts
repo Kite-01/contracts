@@ -5,7 +5,7 @@ import { configVariable, defineConfig } from "hardhat/config";
 const DefaultCompilerSettings = {
   version: "0.8.34",
   settings: {
-    evmVersion: "cancun",
+    evmVersion: "paris",
     optimizer: {
       enabled: true,
       runs: 200,

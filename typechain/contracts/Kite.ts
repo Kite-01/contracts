@@ -39,9 +39,9 @@ decodeFunctionResult(functionFragment: 'status', data: BytesLike): Result;
   
 
     export namespace FeePaidEvent {
-      export type InputTuple = [transferId: BytesLike, recipient: AddressLike, token: AddressLike, amount: BigNumberish];
-      export type OutputTuple = [transferId: string, recipient: string, token: string, amount: bigint];
-      export interface OutputObject {transferId: string, recipient: string, token: string, amount: bigint };
+      export type InputTuple = [transferId: BytesLike, feeId: BytesLike, token: AddressLike, recipient: AddressLike, amount: BigNumberish];
+      export type OutputTuple = [transferId: string, feeId: string, token: string, recipient: string, amount: bigint];
+      export interface OutputObject {transferId: string, feeId: string, token: string, recipient: string, amount: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -226,7 +226,7 @@ getEvent(key: 'Settled'): TypedContractEvent<SettledEvent.InputTuple, SettledEve
       ExcessRefunded: TypedContractEvent<ExcessRefundedEvent.InputTuple, ExcessRefundedEvent.OutputTuple, ExcessRefundedEvent.OutputObject>;
     
 
-      'FeePaid(bytes32,address,address,uint256)': TypedContractEvent<FeePaidEvent.InputTuple, FeePaidEvent.OutputTuple, FeePaidEvent.OutputObject>;
+      'FeePaid(bytes32,bytes32,address,address,uint256)': TypedContractEvent<FeePaidEvent.InputTuple, FeePaidEvent.OutputTuple, FeePaidEvent.OutputObject>;
       FeePaid: TypedContractEvent<FeePaidEvent.InputTuple, FeePaidEvent.OutputTuple, FeePaidEvent.OutputObject>;
     
 

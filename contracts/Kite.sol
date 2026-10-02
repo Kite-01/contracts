@@ -114,6 +114,7 @@ contract Kite is Initializable, IKite {
 
             emit IKite.FeePaid(
                 transfer.id,
+                fee.id,
                 fee.recipient,
                 transfer.settlementTokenAddress,
                 fee.amount

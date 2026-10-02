@@ -62,6 +62,11 @@
           {
             "components": [
               {
+                "internalType": "bytes32",
+                "name": "id",
+                "type": "bytes32"
+              },
+              {
                 "internalType": "address",
                 "name": "recipient",
                 "type": "address"
@@ -150,6 +155,11 @@
           {
             "components": [
               {
+                "internalType": "bytes32",
+                "name": "id",
+                "type": "bytes32"
+              },
+              {
                 "internalType": "address",
                 "name": "recipient",
                 "type": "address"
@@ -237,6 +247,11 @@
           },
           {
             "components": [
+              {
+                "internalType": "bytes32",
+                "name": "id",
+                "type": "bytes32"
+              },
               {
                 "internalType": "address",
                 "name": "recipient",
@@ -330,6 +345,11 @@
           {
             "components": [
               {
+                "internalType": "bytes32",
+                "name": "id",
+                "type": "bytes32"
+              },
+              {
                 "internalType": "address",
                 "name": "recipient",
                 "type": "address"
@@ -411,6 +431,11 @@
           },
           {
             "components": [
+              {
+                "internalType": "bytes32",
+                "name": "id",
+                "type": "bytes32"
+              },
               {
                 "internalType": "address",
                 "name": "recipient",

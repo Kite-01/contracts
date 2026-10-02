@@ -6,9 +6,9 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 export declare namespace IFee {
       
-    export type FeeStruct = {recipient: AddressLike, amount: BigNumberish}
+    export type FeeStruct = {id: BytesLike, recipient: AddressLike, amount: BigNumberish}
 
-    export type FeeStructOutput = [recipient: string, amount: bigint] & {recipient: string, amount: bigint }
+    export type FeeStructOutput = [id: string, recipient: string, amount: bigint] & {id: string, recipient: string, amount: bigint }
   
     }
 

@@ -61,7 +61,7 @@ contract KiteTest is Test {
     ) internal view returns (ITransfer.Transfer memory) {
         IFee.Fee[] memory fees = new IFee.Fee[](fee_ == 0 ? 0 : 1);
 
-        if (fee_ != 0) fees[0] = IFee.Fee(feeTo, fee_);
+        if (fee_ != 0) fees[0] = IFee.Fee(bytes32(uint256(1)), feeTo, fee_);
 
         return
             ITransfer.Transfer({
@@ -599,9 +599,9 @@ contract KiteTest is Test {
         uint256 third
     ) internal view returns (IFee.Fee[] memory fees) {
         fees = new IFee.Fee[](3);
-        fees[0] = IFee.Fee(feeTo, first);
-        fees[1] = IFee.Fee(feeTo2, second);
-        fees[2] = IFee.Fee(feeTo3, third);
+        fees[0] = IFee.Fee(bytes32(uint256(1)), feeTo, first);
+        fees[1] = IFee.Fee(bytes32(uint256(2)), feeTo2, second);
+        fees[2] = IFee.Fee(bytes32(uint256(3)), feeTo3, third);
     }
 
     function test_multiFeeNativeToNative() public {
@@ -664,8 +664,8 @@ contract KiteTest is Test {
         );
 
         t.fees = new IFee.Fee[](2);
-        t.fees[0] = IFee.Fee(feeTo, 1e6);
-        t.fees[1] = IFee.Fee(feeTo, 2e6);
+        t.fees[0] = IFee.Fee(bytes32(uint256(1)), feeTo, 1e6);
+        t.fees[1] = IFee.Fee(bytes32(uint256(2)), feeTo, 2e6);
         usdc.mint(factory.predictAddress(t), 100e6);
 
         vm.prank(operator);
@@ -700,11 +700,11 @@ contract KiteTest is Test {
         );
 
         t.fees = new IFee.Fee[](1);
-        t.fees[0] = IFee.Fee(address(0), 1e6);
+        t.fees[0] = IFee.Fee(bytes32(uint256(1)), address(0), 1e6);
         vm.expectRevert(IGeneralErrors.ZeroAddress.selector);
         deploy(t);
 
-        t.fees[0] = IFee.Fee(feeTo, 0);
+        t.fees[0] = IFee.Fee(bytes32(uint256(1)), feeTo, 0);
         vm.expectRevert(IGeneralErrors.InvalidConfig.selector);
         deploy(t);
     }
@@ -720,12 +720,18 @@ contract KiteTest is Test {
         );
 
         t.fees = new IFee.Fee[](11);
-        for (uint256 i; i < 11; ++i) t.fees[i] = IFee.Fee(feeTo, 1);
+        for (uint256 i; i < 11; ++i) {
+            t.fees[i] = IFee.Fee(bytes32(i), feeTo, 1);
+        }
+
         vm.expectRevert(IGeneralErrors.TooManyFees.selector);
         deploy(t);
 
         t.fees = new IFee.Fee[](10);
-        for (uint256 i; i < 10; ++i) t.fees[i] = IFee.Fee(feeTo, 1);
+        for (uint256 i; i < 10; ++i) {
+            t.fees[i] = IFee.Fee(bytes32(i), feeTo, 1);
+        }
+
         usdc.mint(factory.predictAddress(t), 100e6);
         vm.prank(operator);
         factory.settle(t);
