@@ -2,7 +2,7 @@
   "name": "@kite-01/contracts",
   "description": "Contracts for Kite",
   "license": "MIT",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "keywords": [
     "kite",
