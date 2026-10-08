@@ -170,6 +170,8 @@ contract Kite is Initializable, IKite {
         status = IKite.Status.Refunded;
 
         uint256 balance = Common.balanceOf(transfer.payInTokenAddress);
+        uint256 amountRefunded = 0;
+
         if (balance != 0) {
             address to = transfer.refundAddress;
             bool success = Common.trySend(
@@ -178,14 +180,16 @@ contract Kite is Initializable, IKite {
                 balance
             );
 
-            if (!success) revert IGeneralErrors.RefundFailed(to);
+            // refund destination may be a contract that rejects ETH
+            // in that case, leave the funds here so operator can recover them
+            if (success) amountRefunded = balance;
         }
 
         emit IKite.Refunded(
             transfer.id,
             transfer.refundAddress,
             transfer.payInTokenAddress,
-            balance
+            amountRefunded
         );
     }
 
