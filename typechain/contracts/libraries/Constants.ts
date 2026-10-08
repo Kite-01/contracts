@@ -6,13 +6,15 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface ConstantsInterface extends Interface {
-    getFunction(nameOrSignature: "MAX_FEES"): FunctionFragment;
+    getFunction(nameOrSignature: "MAX_FEES" | "MIN_SEND_GAS"): FunctionFragment;
 
     
 
     encodeFunctionData(functionFragment: 'MAX_FEES', values?: undefined): string;
+encodeFunctionData(functionFragment: 'MIN_SEND_GAS', values?: undefined): string;
 
     decodeFunctionResult(functionFragment: 'MAX_FEES', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'MIN_SEND_GAS', data: BytesLike): Result;
   }
 
   
@@ -58,10 +60,23 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
     >
     
 
+    
+    MIN_SEND_GAS: TypedContractMethod<
+      [],
+      [bigint],
+      'view'
+    >
+    
+
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
     getFunction(nameOrSignature: 'MAX_FEES'): TypedContractMethod<
+      [],
+      [bigint],
+      'view'
+    >;
+getFunction(nameOrSignature: 'MIN_SEND_GAS'): TypedContractMethod<
       [],
       [bigint],
       'view'

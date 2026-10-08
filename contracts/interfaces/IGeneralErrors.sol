@@ -13,4 +13,6 @@ interface IGeneralErrors {
     error NativeNotAccepted();
     error RecoveryNotAllowed();
     error OnlyFactory();
+    error InsufficientGas();
+    error RefundFailed(address to);
 }

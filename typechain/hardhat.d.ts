@@ -17,15 +17,15 @@ getContractFactory(name: 'IKite', signerOrOptions?: ethers.Signer | FactoryOptio
 getContractFactory(name: 'IKiteFactory', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IKiteFactory__factory>
 getContractFactory(name: 'IWETH9', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IWETH9__factory>
 getContractFactory(name: 'Constants', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Constants__factory>
+getContractFactory(name: 'ERC20_Mock', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ERC20_Mock__factory>
+getContractFactory(name: 'Reenterer', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Reenterer__factory>
+getContractFactory(name: 'SwapRouter_Mock', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.SwapRouter_Mock__factory>
+getContractFactory(name: 'WETH9_Mock', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.WETH9_Mock__factory>
+getContractFactory(name: 'IV3SwapRouter', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IV3SwapRouter__factory>
 getContractFactory(name: 'AccessControl', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.AccessControl__factory>
 getContractFactory(name: 'Clones', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Clones__factory>
 getContractFactory(name: 'Address', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Address__factory>
-getContractFactory(name: 'ERC20_Mock', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ERC20_Mock__factory>
-getContractFactory(name: 'SwapRouter_Mock', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.SwapRouter_Mock__factory>
-getContractFactory(name: 'Reenterer', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Reenterer__factory>
-getContractFactory(name: 'WETH9_Mock', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.WETH9_Mock__factory>
 getContractFactory(name: 'IERC20', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IERC20__factory>
-getContractFactory(name: 'IV3SwapRouter', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IV3SwapRouter__factory>
 getContractFactory(name: 'SafeERC20', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.SafeERC20__factory>
 
   getContractAt(name: 'Kite', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Kite>
@@ -35,15 +35,15 @@ getContractAt(name: 'IKite', address: string | ethers.Addressable, signer?: ethe
 getContractAt(name: 'IKiteFactory', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IKiteFactory>
 getContractAt(name: 'IWETH9', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IWETH9>
 getContractAt(name: 'Constants', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Constants>
+getContractAt(name: 'ERC20_Mock', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ERC20_Mock>
+getContractAt(name: 'Reenterer', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Reenterer>
+getContractAt(name: 'SwapRouter_Mock', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.SwapRouter_Mock>
+getContractAt(name: 'WETH9_Mock', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.WETH9_Mock>
+getContractAt(name: 'IV3SwapRouter', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IV3SwapRouter>
 getContractAt(name: 'AccessControl', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.AccessControl>
 getContractAt(name: 'Clones', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Clones>
 getContractAt(name: 'Address', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Address>
-getContractAt(name: 'ERC20_Mock', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ERC20_Mock>
-getContractAt(name: 'SwapRouter_Mock', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.SwapRouter_Mock>
-getContractAt(name: 'Reenterer', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Reenterer>
-getContractAt(name: 'WETH9_Mock', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.WETH9_Mock>
 getContractAt(name: 'IERC20', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IERC20>
-getContractAt(name: 'IV3SwapRouter', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IV3SwapRouter>
 getContractAt(name: 'SafeERC20', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.SafeERC20>
 
   deployContract(name: 'Kite', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Kite>
@@ -53,15 +53,15 @@ deployContract(name: 'IKite', signerOrOptions?: ethers.Signer | DeployContractOp
 deployContract(name: 'IKiteFactory', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IKiteFactory>
 deployContract(name: 'IWETH9', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IWETH9>
 deployContract(name: 'Constants', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Constants>
+deployContract(name: 'ERC20_Mock', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ERC20_Mock>
+deployContract(name: 'Reenterer', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Reenterer>
+deployContract(name: 'SwapRouter_Mock', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.SwapRouter_Mock>
+deployContract(name: 'WETH9_Mock', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.WETH9_Mock>
+deployContract(name: 'IV3SwapRouter', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IV3SwapRouter>
 deployContract(name: 'AccessControl', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.AccessControl>
 deployContract(name: 'Clones', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Clones>
 deployContract(name: 'Address', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Address>
-deployContract(name: 'ERC20_Mock', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ERC20_Mock>
-deployContract(name: 'SwapRouter_Mock', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.SwapRouter_Mock>
-deployContract(name: 'Reenterer', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Reenterer>
-deployContract(name: 'WETH9_Mock', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.WETH9_Mock>
 deployContract(name: 'IERC20', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IERC20>
-deployContract(name: 'IV3SwapRouter', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IV3SwapRouter>
 deployContract(name: 'SafeERC20', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.SafeERC20>
 
   deployContract(name: 'Kite', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Kite>
@@ -71,15 +71,15 @@ deployContract(name: 'IKite', args: any[], signerOrOptions?: ethers.Signer | Dep
 deployContract(name: 'IKiteFactory', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IKiteFactory>
 deployContract(name: 'IWETH9', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IWETH9>
 deployContract(name: 'Constants', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Constants>
+deployContract(name: 'ERC20_Mock', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ERC20_Mock>
+deployContract(name: 'Reenterer', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Reenterer>
+deployContract(name: 'SwapRouter_Mock', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.SwapRouter_Mock>
+deployContract(name: 'WETH9_Mock', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.WETH9_Mock>
+deployContract(name: 'IV3SwapRouter', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IV3SwapRouter>
 deployContract(name: 'AccessControl', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.AccessControl>
 deployContract(name: 'Clones', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Clones>
 deployContract(name: 'Address', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Address>
-deployContract(name: 'ERC20_Mock', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ERC20_Mock>
-deployContract(name: 'SwapRouter_Mock', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.SwapRouter_Mock>
-deployContract(name: 'Reenterer', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Reenterer>
-deployContract(name: 'WETH9_Mock', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.WETH9_Mock>
 deployContract(name: 'IERC20', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IERC20>
-deployContract(name: 'IV3SwapRouter', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IV3SwapRouter>
 deployContract(name: 'SafeERC20', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.SafeERC20>
 
     // default types

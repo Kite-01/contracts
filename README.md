@@ -36,6 +36,8 @@ The contracts support:
 - custom fee splits with validation for maximum fee count and minimum output checks
 - expiry-based refunds and post-settlement recovery
 - deterministic deployment by transfer parameters
+- overpayments and refunds that the refund address can't receive (e.g. a contract rejecting ETH) never block settlement or leave the transfer open: the amount stays in the clone for the operator to `recover`, and `Refunded` reports the amount actually sent
+- `Recovered` reports the address the tokens were actually sent to
 
 ## Tech stack
 

@@ -6,9 +6,12 @@ import {IV3SwapRouter} from "@uniswap/swap-router-contracts/contracts/interfaces
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {LowLevelCall} from "@openzeppelin/contracts/utils/LowLevelCall.sol";
+import {IGeneralErrors} from "../interfaces/IGeneralErrors.sol";
 import {ITransfer} from "../interfaces/types/ITransfer.sol";
 import {IFee} from "../interfaces/types/IFee.sol";
 import {IWETH9} from "../interfaces/IWETH9.sol";
+import {Constants} from "./Constants.sol";
 
 library Common {
     using SafeERC20 for IERC20;
@@ -64,5 +67,20 @@ library Common {
     function send(address token, address to, uint256 amount) internal {
         if (isZeroAddress(token)) Address.sendValue(payable(to), amount);
         else IERC20(token).safeTransfer(to, amount);
+    }
+
+    function trySend(
+        address token,
+        address to,
+        uint256 amount
+    ) internal returns (bool) {
+        if (gasleft() < Constants.MIN_SEND_GAS) {
+            revert IGeneralErrors.InsufficientGas();
+        }
+
+        return
+            isZeroAddress(token)
+                ? LowLevelCall.callNoReturn(to, amount, "")
+                : IERC20(token).trySafeTransfer(to, amount);
     }
 }

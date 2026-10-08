@@ -34,6 +34,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "InsufficientGas",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -89,6 +94,17 @@
   {
     "inputs": [],
     "name": "RecoveryNotAllowed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      }
+    ],
+    "name": "RefundFailed",
     "type": "error"
   },
   {

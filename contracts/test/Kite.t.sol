@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {KiteFactory} from "../KiteFactory.sol";
 import {Kite, IKite, IGeneralErrors} from "../Kite.sol";
-import {Test} from "forge-std/Test.sol";
+import {Test, Vm} from "forge-std/Test.sol";
 import {ITransfer} from "../interfaces/types/ITransfer.sol";
 import {IFee} from "../interfaces/types/IFee.sol";
 
@@ -761,5 +761,130 @@ contract KiteTest is Test {
         assertTrue(
             factory.predictAddress(first) != factory.predictAddress(second)
         );
+    }
+
+    function test_recoverToDestinationReportsDestination() public {
+        ITransfer.Transfer memory t = transfer(
+            id(),
+            address(usdc),
+            100e6,
+            address(usdc),
+            100e6,
+            1e6
+        );
+
+        address instance = factory.predictAddress(t);
+        usdc.mint(instance, 100e6);
+
+        vm.prank(operator);
+        factory.settle(t);
+        usdc.mint(instance, 7e6);
+
+        address destination = makeAddr("destination");
+        vm.expectEmit(true, true, true, true, instance);
+        emit IKite.Recovered(t.id, address(usdc), destination, 7e6);
+
+        vm.prank(operator);
+        factory.recover(t, address(usdc), destination);
+        assertEq(usdc.balanceOf(destination), 7e6);
+        assertEq(usdc.balanceOf(refundTo), 0);
+    }
+
+    function test_overpaySettlesWhenRefundAddressRejectsEth() public {
+        ITransfer.Transfer memory t = transfer(
+            id(),
+            address(0),
+            1 ether,
+            address(0),
+            1 ether,
+            0.01 ether
+        );
+
+        // A contract without receive() rejects ETH.
+        t.refundAddress = address(usdc);
+        address instance = factory.predictAddress(t);
+
+        vm.prank(payer);
+        (bool ok, ) = instance.call{value: 1.4 ether}("");
+        assertTrue(ok);
+
+        vm.recordLogs();
+        vm.prank(operator);
+        factory.settle(t);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i; i < logs.length; ++i) {
+            assertNotEq(logs[i].topics[0], IKite.ExcessRefunded.selector);
+        }
+
+        assertEq(merchant.balance, 0.99 ether);
+        assertEq(feeTo.balance, 0.01 ether);
+        assertEq(instance.balance, 0.4 ether);
+
+        address destination = makeAddr("destination");
+        vm.prank(operator);
+        factory.recover(t, address(0), destination);
+        assertEq(destination.balance, 0.4 ether);
+    }
+
+    function test_refundToRejectingAddressClosesForRecovery() public {
+        ITransfer.Transfer memory t = transfer(
+            id(),
+            address(0),
+            1 ether,
+            address(0),
+            1 ether,
+            0
+        );
+
+        t.refundAddress = address(usdc);
+        address instance = factory.predictAddress(t);
+        vm.deal(instance, 1 ether);
+
+        vm.expectEmit(true, true, true, true, instance);
+        emit IKite.Refunded(t.id, address(usdc), address(0), 0);
+
+        vm.prank(operator);
+        factory.refund(t);
+
+        assertEq(
+            uint8(Kite(payable(instance)).status()),
+            uint8(IKite.Status.Refunded)
+        );
+        assertEq(instance.balance, 1 ether);
+
+        address destination = makeAddr("destination");
+        vm.prank(operator);
+        factory.recover(t, address(0), destination);
+        assertEq(destination.balance, 1 ether);
+    }
+
+    function test_refundWithTooLittleGasReverts() public {
+        ITransfer.Transfer memory t = transfer(
+            id(),
+            address(usdc),
+            100e6,
+            address(usdc),
+            100e6,
+            1e6
+        );
+
+        address instance = factory.predictAddress(t);
+        usdc.mint(instance, 100e6);
+        deploy(t);
+
+        vm.warp(block.timestamp + 2 hours);
+        vm.prank(payer);
+        vm.expectRevert(IGeneralErrors.InsufficientGas.selector);
+        Kite(payable(instance)).refund{gas: 90_000}();
+
+        assertEq(
+            uint8(Kite(payable(instance)).status()),
+            uint8(IKite.Status.Open)
+        );
+
+        vm.prank(payer);
+        Kite(payable(instance)).refund();
+        assertEq(usdc.balanceOf(refundTo), 100e6);
     }
 }

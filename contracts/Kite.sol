@@ -121,21 +121,6 @@ contract Kite is Initializable, IKite {
             );
         }
 
-        if (excess != 0) {
-            Common.send(
-                transfer.payInTokenAddress,
-                transfer.refundAddress,
-                excess
-            );
-
-            emit IKite.ExcessRefunded(
-                transfer.id,
-                transfer.payInTokenAddress,
-                transfer.refundAddress,
-                excess
-            );
-        }
-
         Common.send(
             transfer.settlementTokenAddress,
             transfer.settlementRecipient,
@@ -151,6 +136,24 @@ contract Kite is Initializable, IKite {
             amountOut,
             totalFees
         );
+
+        // Overpayment goes back last and must not block settlement: if the refund
+        // address can't take it, it stays here for operator to recover.
+        if (
+            excess != 0 &&
+            Common.trySend(
+                transfer.payInTokenAddress,
+                transfer.refundAddress,
+                excess
+            )
+        ) {
+            emit IKite.ExcessRefunded(
+                transfer.id,
+                transfer.payInTokenAddress,
+                transfer.refundAddress,
+                excess
+            );
+        }
     }
 
     function refund() external {
@@ -166,20 +169,23 @@ contract Kite is Initializable, IKite {
 
         status = IKite.Status.Refunded;
 
-        uint256 amount = Common.balanceOf(transfer.payInTokenAddress);
-        if (amount != 0) {
-            Common.send(
+        uint256 balance = Common.balanceOf(transfer.payInTokenAddress);
+        if (balance != 0) {
+            address to = transfer.refundAddress;
+            bool success = Common.trySend(
                 transfer.payInTokenAddress,
-                transfer.refundAddress,
-                amount
+                to,
+                balance
             );
+
+            if (!success) revert IGeneralErrors.RefundFailed(to);
         }
 
         emit IKite.Refunded(
             transfer.id,
             transfer.refundAddress,
             transfer.payInTokenAddress,
-            amount
+            balance
         );
     }
 
@@ -202,22 +208,15 @@ contract Kite is Initializable, IKite {
                 token == transfer.settlementTokenAddress)
         ) revert IGeneralErrors.RecoveryNotAllowed();
 
+        address to = Common.isZeroAddress(destinationAddress)
+            ? transfer.refundAddress
+            : destinationAddress;
+
         uint256 amount = Common.balanceOf(token);
         if (amount != 0) {
-            Common.send(
-                token,
-                Common.isZeroAddress(destinationAddress)
-                    ? transfer.refundAddress
-                    : destinationAddress,
-                amount
-            );
+            Common.send(token, to, amount);
         }
 
-        emit IKite.Recovered(
-            transfer.id,
-            token,
-            transfer.refundAddress,
-            amount
-        );
+        emit IKite.Recovered(transfer.id, token, to, amount);
     }
 }
