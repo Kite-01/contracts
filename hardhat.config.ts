@@ -1,3 +1,4 @@
+import "dotenv/config";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatTypechain from "@nomicfoundation/hardhat-typechain";
 import { configVariable, defineConfig } from "hardhat/config";
