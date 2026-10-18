@@ -36,10 +36,13 @@
     "test": "hardhat test",
     "node": "hardhat node",
     "clean": "hardhat clean",
+    "changeset": "changeset",
+    "version-packages": "changeset version && npm install --package-lock-only",
     "deploy-factory": "hardhat ignition deploy ignition/modules/KiteFactory.ts --parameters ignition/parameters/KiteFactory.json",
     "deploy-factory:mainnet": "npm run deploy-factory -- --network mainnet"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@nomicfoundation/hardhat-ignition": "^3.1.8",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
     "@nomicfoundation/hardhat-typechain": "^3.1.1",
