@@ -1,166 +1,107 @@
 # Kite Contracts
 
-Kite is a Solidity smart contract system for deploying and settling invoice-style payment flows using a factory and clone pattern. The repo contains the contract implementation, deployment module, generated typechain bindings, and a full Solidity test suite covering native token, ERC20, swaps, refunds, and recovery flows.
+The smart contracts behind [Kite](https://github.com/Kite-01/server), an open-source crypto payment processor. Each payment gets its own contract, deployed at an address known before anyone pays, which receives the customer's tokens, swaps them if needed, pays fees and settles to the merchant, or refunds the customer.
 
-## What this repo contains
+## How it works
 
-- `contracts/` — the Solidity source for the Kite factory, implementation, interfaces, and library helpers
-- `contracts/test/` — Foundry-based contract tests for the protocol behavior
-- `ignition/` — Hardhat Ignition deployment module and deployment parameters
-- `typechain/` — generated TS bindings produced by the Hardhat typechain plugin
-- `artifacts/` — compiled contract artifacts
+A Kite server creates a transfer: who gets paid, in which token, the minimum to receive, fees, a refund address and an expiry.
 
-## Core contracts
+1. **Before payment**: `KiteFactory.predictAddress(transfer)` gives the address the customer pays into. Nothing is deployed yet.
+2. **Settling**: once funds arrive, the operator calls `KiteFactory.settle(transfer)`. That deploys a clone of `Kite` at the predicted address and settles it in one transaction: swap through a Uniswap V3 router if the customer paid in another token, pay each fee, and send the rest to the merchant. Anything the customer overpaid goes back to them.
+3. **Refunding**: `KiteFactory.refund(transfer)` returns whatever the contract holds to the refund address. Before expiry only the operator can call it; after expiry anyone can, so a customer is never stuck waiting on the server.
+4. **Recovering**: `KiteFactory.recover(transfer, token, to)` lets the operator retrieve tokens left behind, such as ones sent after settlement or a refund the refund address couldn't accept.
 
-### `KiteFactory`
+`deploy`, `settle` and `recover` need the operator role, which the admin grants.
 
-The factory deploys deterministic clone instances for each invoice transfer configuration. It exposes:
+Details worth knowing:
 
-- `predictAddress(...)` for counterfactual address calculation
-- `deploy(...)` for creating a clone under the operator role
-- `settle(...)` to execute a payment flow
-- `refund(...)` to refund funds after expiry or by operator authorization
-- `recover(...)` to recover stray tokens after settlement
+- Native ETH and any ERC-20 can be paid in or settled.
+- A refund the refund address can't accept, such as a contract that rejects ETH, never blocks settlement or leaves the transfer open. The amount stays in the clone for the operator to `recover`, and `Refunded` reports what was actually sent.
+- `Recovered` reports the address the tokens were actually sent to.
+- A clone can't be re-initialised or driven by anyone but the factory.
 
-### `Kite`
+## Using the package
 
-Each deployed clone represents a single transfer invoice and tracks its status, settlement logic, fee distribution, and permissions. The implementation is designed to be locked down so callers cannot reinitialize or directly manipulate the deployment outside the factory.
+The server uses the published package for ABIs and typed bindings:
 
-## Protocol behavior
+```sh
+npm install @kite-01/contracts
+```
 
-The contracts support:
+```ts
+import { Kite__factory } from "@kite-01/contracts/typechain/factories/contracts/Kite__factory.js";
+```
 
-- native ETH and ERC20 payment/in settlement
-- same-token and cross-token settlement flows
-- price routing through a configured Uniswap-style swap router
-- custom fee splits with validation for maximum fee count and minimum output checks
-- expiry-based refunds and post-settlement recovery
-- deterministic deployment by transfer parameters
-- overpayments and refunds that the refund address can't receive (e.g. a contract rejecting ETH) never block settlement or leave the transfer open: the amount stays in the clone for the operator to `recover`, and `Refunded` reports the amount actually sent
-- `Recovered` reports the address the tokens were actually sent to
+It exports the Solidity sources (`@kite-01/contracts/contracts/*`), the compiled artifacts (`@kite-01/contracts/artifacts/*`) and the TypeChain bindings (`@kite-01/contracts/typechain/*`).
 
-## Tech stack
+## Deployments
 
-- Hardhat 3
-- Solidity 0.8.34
-- OpenZeppelin contracts
-- Uniswap swap-router interfaces
-- viem + typechain generation
-- Foundry-style test suite (`forge-std`)
+| Network               | `KiteFactory`                                |
+| --------------------- | -------------------------------------------- |
+| Base Sepolia (84532)  | `0x8993cFd318Ded220381f37d6209027D36B6CF117` |
+| Monad Testnet (10143) | `0x60c39c24619be51bC7Ef1B82EaE6d922f9F6da1E` |
 
-## Prerequisites
+The full deployment records are in `ignition/deployments/`.
 
-- Node.js >= 22.13.0
-- npm
+## Development
 
-## Installation
+You need Node.js 22.13 or newer.
 
-```bash
+```sh
 npm install
+npm run compile   # compile the contracts and generate TypeChain bindings
+npm test          # run the Solidity tests in contracts/test/
+npm run build     # compile and build the package into dist/
+npm run node      # start a local Hardhat node
+npm run clean     # remove build artifacts
 ```
 
-## Common commands
+The contracts compile with Solidity 0.8.34, optimizer on at 200 runs, targeting the Paris EVM.
 
-### Compile contracts
+## Deploying
 
-```bash
-npm run compile
-```
-
-### Build project
-
-```bash
-npm run build
-```
-
-### Run the full test suite
-
-```bash
-npm test
-```
-
-This runs the Hardhat test command, which includes the Solidity tests under `contracts/test/`.
-
-### Start a local Hardhat node
-
-```bash
-npm run node
-```
-
-### Clean build artifacts
-
-```bash
-npm run clean
-```
-
-## Deployment
-
-The repo includes a Hardhat Ignition deployment for the factory:
-
-```bash
-npm run deploy-factory
-```
-
-This uses:
-
-- `ignition/modules/KiteFactory.ts`
-- `ignition/parameters/KiteFactory.json`
-
-The default parameters file currently sets both `admin` and `operator` to the same address:
+The factory deploys with Hardhat Ignition, taking its admin and operator from `ignition/parameters/KiteFactory.json`:
 
 ```json
 {
   "KiteFactoryModule": {
-    "admin": "0xA82474B1d4DDac1ed5e4ed047a4A3caD01C200C8",
-    "operator": "0xA82474B1d4DDac1ed5e4ed047a4A3caD01C200C8"
+    "admin": "0x…",
+    "operator": "0x…"
   }
 }
 ```
 
-For a mainnet fork deployment, the project uses the `mainnet` network configuration from `hardhat.config.ts`:
+The operator should be the address of the Kite server's operator wallet, which settles and refunds transfers. Then:
 
-```bash
-npm run deploy-factory:mainnet
+```sh
+npm run deploy-factory           # to the local in-process network
+npm run deploy-factory:mainnet   # to the network at FORK_URL
 ```
 
-This expects the following environment variables to be available:
+`deploy-factory:mainnet` deploys to whichever RPC `FORK_URL` points at, signing with `PRIVATE_KEY` and verifying on Etherscan with `ETHERSCAN_API_KEY`. Set them in a `.env` file or as Hardhat configuration variables.
 
-- `FORK_URL`
-- `PRIVATE_KEY`
-- `ETHERSCAN_API_KEY`
-
-## Configuration notes
-
-The configuration in `hardhat.config.ts` includes:
-
-- Solidity compiler version `0.8.34`
-- optimizer enabled with `runs: 200`
-- `hardhat` and `hardhatOp` simulated network settings
-- `mainnet` configured for an HTTP RPC with a configured private key
-- Etherscan verification enabled via `ETHERSCAN_API_KEY`
-
-## Repository structure
+## Project layout
 
 ```text
-.
-├── contracts/
-│   ├── interfaces/
-│   ├── libraries/
-│   ├── test/
-│   ├── Kite.sol
-│   └── KiteFactory.sol
-├── ignition/
-│   ├── modules/
-│   └── parameters/
-├── typechain/
-├── artifacts/
-├── hardhat.config.ts
-├── package.json
-├── tsconfig.json
-├── README.md
-└── .gitignore
+contracts/
+  KiteFactory.sol    deploys, settles, refunds and recovers transfers
+  Kite.sol           one transfer: settlement, fees, refunds
+  interfaces/
+  libraries/
+  test/              Solidity tests (forge-std)
+ignition/
+  modules/           deployment module
+  parameters/        admin and operator for each deployment
+  deployments/       records of past deployments
+typechain/           generated TypeScript bindings
 ```
 
-## Notes
+## Contributing
 
-This repository is a contracts-focused project rather than a generic Hardhat starter. The implementation and scripts are shaped around the Kite payment factory and the invoice settlement lifecycle, rather than the default sample Counter deployment from a starter template.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests and how releases work.
+
+To report a vulnerability, follow [SECURITY.md](SECURITY.md) rather than opening an issue.
+
+## License
+
+[MIT](LICENSE)
