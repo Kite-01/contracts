@@ -2,16 +2,17 @@
 pragma solidity ^0.8.20;
 
 import {IPeripheryImmutableState} from "@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol";
-import {IV3SwapRouter} from "@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {LowLevelCall} from "@openzeppelin/contracts/utils/LowLevelCall.sol";
+import {IUniswapV2Router02} from "../interfaces/IUniswapV2Router02.sol";
 import {IGeneralErrors} from "../interfaces/IGeneralErrors.sol";
+import {IV3SwapRouter} from "@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol";
+import {LowLevelCall} from "@openzeppelin/contracts/utils/LowLevelCall.sol";
 import {ITransfer} from "../interfaces/types/ITransfer.sol";
-import {IFee} from "../interfaces/types/IFee.sol";
-import {IWETH9} from "../interfaces/IWETH9.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Constants} from "./Constants.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IWETH9} from "../interfaces/IWETH9.sol";
+import {IFee} from "../interfaces/types/IFee.sol";
 
 library Common {
     using SafeERC20 for IERC20;
@@ -38,7 +39,11 @@ library Common {
     function swap(
         ITransfer.Transfer memory transfer
     ) internal returns (uint256 amountOut) {
-        address weth = IPeripheryImmutableState(transfer.routerAddress).WETH9();
+        bool v2 = transfer.poolFeeTier == 0;
+        address weth = v2
+            ? IUniswapV2Router02(transfer.routerAddress).WETH()
+            : IPeripheryImmutableState(transfer.routerAddress).WETH9();
+
         bool nativeIn = isZeroAddress(transfer.payInTokenAddress);
         bool nativeOut = isZeroAddress(transfer.settlementTokenAddress);
 
@@ -49,17 +54,32 @@ library Common {
 
         IERC20(tokenIn).forceApprove(transfer.routerAddress, transfer.amountIn);
 
-        amountOut = IV3SwapRouter(transfer.routerAddress).exactInputSingle(
-            IV3SwapRouter.ExactInputSingleParams({
-                tokenIn: tokenIn,
-                tokenOut: tokenOut,
-                fee: transfer.poolFeeTier,
-                recipient: address(this),
-                amountIn: transfer.amountIn,
-                amountOutMinimum: transfer.minAmountOut,
-                sqrtPriceLimitX96: 0
-            })
-        );
+        if (v2) {
+            address[] memory path = new address[](2);
+            path[0] = tokenIn;
+            path[1] = tokenOut;
+
+            amountOut = IUniswapV2Router02(transfer.routerAddress)
+                .swapExactTokensForTokens(
+                    transfer.amountIn,
+                    transfer.minAmountOut,
+                    path,
+                    address(this),
+                    block.timestamp
+                )[1];
+        } else {
+            amountOut = IV3SwapRouter(transfer.routerAddress).exactInputSingle(
+                IV3SwapRouter.ExactInputSingleParams({
+                    tokenIn: tokenIn,
+                    tokenOut: tokenOut,
+                    fee: transfer.poolFeeTier,
+                    recipient: address(this),
+                    amountIn: transfer.amountIn,
+                    amountOutMinimum: transfer.minAmountOut,
+                    sqrtPriceLimitX96: 0
+                })
+            );
+        }
 
         if (nativeOut) IWETH9(weth).withdraw(amountOut);
     }

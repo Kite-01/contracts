@@ -100,6 +100,11 @@
             "internalType": "uint24",
             "name": "poolFeeTier",
             "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "implementation",
+            "type": "address"
           }
         ],
         "internalType": "struct ITransfer.Transfer",
@@ -116,6 +121,38 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "implementation",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "implementation_",
+        "type": "address"
+      }
+    ],
+    "name": "isImplementation",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -193,6 +230,11 @@
             "internalType": "uint24",
             "name": "poolFeeTier",
             "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "implementation",
+            "type": "address"
           }
         ],
         "internalType": "struct ITransfer.Transfer",
@@ -286,6 +328,11 @@
             "internalType": "uint24",
             "name": "poolFeeTier",
             "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "implementation",
+            "type": "address"
           }
         ],
         "internalType": "struct ITransfer.Transfer",
@@ -383,6 +430,11 @@
             "internalType": "uint24",
             "name": "poolFeeTier",
             "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "implementation",
+            "type": "address"
           }
         ],
         "internalType": "struct ITransfer.Transfer",
@@ -391,6 +443,19 @@
       }
     ],
     "name": "refund",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "implementation_",
+        "type": "address"
+      }
+    ],
+    "name": "setImplementation",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -470,6 +535,11 @@
             "internalType": "uint24",
             "name": "poolFeeTier",
             "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "implementation",
+            "type": "address"
           }
         ],
         "internalType": "struct ITransfer.Transfer",

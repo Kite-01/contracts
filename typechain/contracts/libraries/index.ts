@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { Constants } from './Constants.js';
+export type { Storage } from './Storage.js';

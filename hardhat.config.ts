@@ -1,6 +1,7 @@
 import "dotenv/config";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatTypechain from "@nomicfoundation/hardhat-typechain";
+import hardhatVerify from "@nomicfoundation/hardhat-verify";
 import { configVariable, defineConfig } from "hardhat/config";
 
 const DefaultCompilerSettings = {
@@ -21,7 +22,7 @@ export default defineConfig({
   paths: {
     sources: "./contracts",
   },
-  plugins: [hardhatToolboxViemPlugin, hardhatTypechain],
+  plugins: [hardhatToolboxViemPlugin, hardhatTypechain, hardhatVerify],
   solidity: {
     compilers: [DefaultCompilerSettings],
     npmFilesToBuild: [
@@ -31,6 +32,8 @@ export default defineConfig({
       "@openzeppelin/contracts/access/AccessControl.sol",
       "@openzeppelin/contracts/utils/Address.sol",
       "@openzeppelin/contracts/proxy/Clones.sol",
+      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol",
+      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
     ],
   },
   typechain: {
@@ -54,9 +57,6 @@ export default defineConfig({
   verify: {
     etherscan: {
       apiKey: configVariable("ETHERSCAN_API_KEY"),
-    },
-    sourcify: {
-      enabled: false,
     },
   },
 });

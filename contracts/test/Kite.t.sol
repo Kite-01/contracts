@@ -2,11 +2,18 @@
 pragma solidity ^0.8.20;
 
 import {KiteFactory} from "../KiteFactory.sol";
+import {TransparentUpgradeableProxy, ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {Kite, IKite, IGeneralErrors} from "../Kite.sol";
 import {Test, Vm} from "forge-std/Test.sol";
 import {ITransfer} from "../interfaces/types/ITransfer.sol";
 import {IFee} from "../interfaces/types/IFee.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {UniswapV2Router_Mock} from "./mocks/UniswapV2Router_Mock.sol";
 import {SwapRouter_Mock} from "./mocks/SwapRouter_Mock.sol";
 import {ERC20_Mock} from "./mocks/ERC20_Mock.sol";
 import {WETH9_Mock} from "./mocks/WETH9_Mock.sol";
@@ -14,8 +21,10 @@ import {Reenterer} from "./mocks/Reenterer.sol";
 
 contract KiteTest is Test {
     KiteFactory factory;
+    ProxyAdmin proxyAdmin;
     WETH9_Mock weth;
     SwapRouter_Mock router;
+    UniswapV2Router_Mock v2Router;
     ERC20_Mock usdc;
     ERC20_Mock usdt;
 
@@ -29,15 +38,39 @@ contract KiteTest is Test {
     address refundTo = makeAddr("refundTo");
 
     function setUp() public {
-        factory = new KiteFactory(admin, operator);
+        factory = KiteFactory(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(new KiteFactory()),
+                    admin,
+                    abi.encodeCall(KiteFactory.initialize, (admin, operator))
+                )
+            )
+        );
+
+        proxyAdmin = ProxyAdmin(proxySlot(ERC1967Utils.ADMIN_SLOT));
 
         weth = new WETH9_Mock();
         router = new SwapRouter_Mock(address(weth));
+        v2Router = new UniswapV2Router_Mock(address(weth));
         usdc = new ERC20_Mock("USDC");
         usdt = new ERC20_Mock("USDT");
 
         vm.deal(address(weth), 1000 ether);
         vm.deal(payer, 100 ether);
+    }
+
+    function proxySlot(bytes32 slot) internal view returns (address) {
+        return address(uint160(uint256(vm.load(address(factory), slot))));
+    }
+
+    function upgradeFactory(address caller, address next) internal {
+        vm.prank(caller);
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(address(factory)),
+            next,
+            ""
+        );
     }
 
     function deploy(
@@ -75,8 +108,17 @@ contract KiteTest is Test {
                 refundAddress: refundTo,
                 expiresAt: block.timestamp + 1 hours,
                 routerAddress: address(router),
-                poolFeeTier: 3000
+                poolFeeTier: 3000,
+                implementation: factory.implementation()
             });
+    }
+
+    function useV2(
+        ITransfer.Transfer memory t
+    ) internal view returns (ITransfer.Transfer memory) {
+        t.routerAddress = address(v2Router);
+        t.poolFeeTier = 0;
+        return t;
     }
 
     function test_nativeToNative_receiveAfterDeploy() public {
@@ -317,6 +359,90 @@ contract KiteTest is Test {
         assertEq(usdt.balanceOf(merchant), 98.5e6);
         assertEq(usdt.balanceOf(feeTo), 1e6);
         assertEq(usdc.allowance(instance, address(router)), 0);
+    }
+
+    function test_v2_nativeToErc20_swap() public {
+        ITransfer.Transfer memory t = useV2(
+            transfer(id(), address(0), 1 ether, address(usdc), 2000e6, 10e6)
+        );
+
+        v2Router.setRate(2500e6, 1 ether);
+        address instance = deploy(t);
+
+        vm.prank(payer);
+        (bool ok, ) = instance.call{value: 1 ether}("");
+        assertTrue(ok);
+
+        vm.prank(operator);
+        factory.settle(t);
+
+        assertEq(usdc.balanceOf(merchant), 2490e6);
+        assertEq(usdc.balanceOf(feeTo), 10e6);
+        assertEq(instance.balance, 0);
+    }
+
+    function test_v2_erc20ToNative_unwrap() public {
+        ITransfer.Transfer memory t = useV2(
+            transfer(
+                id(),
+                address(usdc),
+                2500e6,
+                address(0),
+                1 ether,
+                0.01 ether
+            )
+        );
+
+        v2Router.setRate(1 ether, 2500e6);
+        address instance = factory.predictAddress(t);
+        usdc.mint(instance, 2500e6);
+
+        vm.prank(operator);
+        factory.settle(t);
+
+        assertEq(merchant.balance, 0.99 ether);
+        assertEq(feeTo.balance, 0.01 ether);
+        assertEq(instance.balance, 0);
+    }
+
+    function test_v2_erc20ToDifferentErc20() public {
+        ITransfer.Transfer memory t = useV2(
+            transfer(id(), address(usdc), 100e6, address(usdt), 99e6, 1e6)
+        );
+
+        v2Router.setRate(995, 1000);
+        address instance = factory.predictAddress(t);
+        usdc.mint(instance, 100e6);
+
+        vm.prank(operator);
+        factory.settle(t);
+
+        assertEq(usdt.balanceOf(merchant), 98.5e6);
+        assertEq(usdt.balanceOf(feeTo), 1e6);
+        assertEq(usdc.allowance(instance, address(v2Router)), 0);
+    }
+
+    function test_v2_belowMinRevertsAndRemainsOpen() public {
+        ITransfer.Transfer memory t = useV2(
+            transfer(id(), address(0), 1 ether, address(usdc), 2000e6, 10e6)
+        );
+
+        v2Router.setRate(1900e6, 1 ether);
+        address instance = deploy(t);
+
+        vm.prank(payer);
+        (bool ok, ) = instance.call{value: 1 ether}("");
+        assertTrue(ok);
+
+        vm.prank(operator);
+        vm.expectRevert(bytes("UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"));
+        factory.settle(t);
+
+        assertEq(instance.balance, 1 ether);
+        assertEq(
+            uint8(Kite(payable(instance)).status()),
+            uint8(IKite.Status.Open)
+        );
     }
 
     function test_refundOperatorAndPublicAfterExpiry() public {
@@ -886,5 +1012,155 @@ contract KiteTest is Test {
         vm.prank(payer);
         Kite(payable(instance)).refund();
         assertEq(usdc.balanceOf(refundTo), 100e6);
+    }
+
+    function test_upgradeOnlyByProxyAdminOwnerAndKeepsState() public {
+        KiteFactory next = new KiteFactory();
+        address implementation = factory.implementation();
+        bytes32 adminRole = factory.DEFAULT_ADMIN_ROLE();
+
+        assertEq(proxyAdmin.owner(), admin);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                operator
+            )
+        );
+        upgradeFactory(operator, address(next));
+
+        upgradeFactory(admin, address(next));
+
+        assertEq(proxySlot(ERC1967Utils.IMPLEMENTATION_SLOT), address(next));
+        assertEq(factory.implementation(), implementation);
+        assertTrue(factory.hasRole(adminRole, admin));
+        assertTrue(factory.hasRole(factory.OPERATOR_ROLE(), operator));
+    }
+
+    function test_paymentsSurviveAFactoryUpgrade() public {
+        ITransfer.Transfer memory t = transfer(
+            id(),
+            address(usdc),
+            100e6,
+            address(usdc),
+            100e6,
+            1e6
+        );
+
+        address instance = factory.predictAddress(t);
+        usdc.mint(instance, 100e6);
+
+        upgradeFactory(admin, address(new KiteFactory()));
+
+        assertEq(factory.predictAddress(t), instance);
+
+        vm.prank(operator);
+        factory.settle(t);
+
+        assertEq(usdc.balanceOf(merchant), 99e6);
+        assertEq(usdc.balanceOf(feeTo), 1e6);
+    }
+
+    function test_newImplementationOnlyForNewTransfers() public {
+        ITransfer.Transfer memory existing = transfer(
+            id(),
+            address(usdc),
+            100e6,
+            address(usdc),
+            100e6,
+            1e6
+        );
+
+        address existingInstance = factory.predictAddress(existing);
+        usdc.mint(existingInstance, 100e6);
+
+        Kite next = new Kite(address(factory));
+        vm.prank(admin);
+        factory.setImplementation(address(next));
+
+        assertEq(factory.implementation(), address(next));
+        assertTrue(factory.isImplementation(existing.implementation));
+        assertEq(factory.predictAddress(existing), existingInstance);
+
+        vm.prank(operator);
+        factory.settle(existing);
+        assertEq(usdc.balanceOf(merchant), 99e6);
+
+        ITransfer.Transfer memory later = transfer(
+            id(),
+            address(usdc),
+            100e6,
+            address(usdc),
+            100e6,
+            1e6
+        );
+        assertEq(later.implementation, address(next));
+
+        usdc.mint(factory.predictAddress(later), 100e6);
+        vm.prank(operator);
+        factory.settle(later);
+        assertEq(usdc.balanceOf(merchant), 198e6);
+    }
+
+    function test_setImplementationGuarded() public {
+        Kite next = new Kite(address(factory));
+        bytes32 adminRole = factory.DEFAULT_ADMIN_ROLE();
+
+        vm.prank(operator);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                operator,
+                adminRole
+            )
+        );
+        factory.setImplementation(address(next));
+
+        Kite foreign = new Kite(makeAddr("otherFactory"));
+        vm.prank(admin);
+        vm.expectRevert(IGeneralErrors.InvalidConfig.selector);
+        factory.setImplementation(address(foreign));
+
+        vm.prank(admin);
+        vm.expectRevert(IGeneralErrors.InvalidConfig.selector);
+        factory.setImplementation(makeAddr("noCode"));
+    }
+
+    function test_unknownImplementationRejected() public {
+        ITransfer.Transfer memory t = transfer(
+            id(),
+            address(usdc),
+            100e6,
+            address(usdc),
+            100e6,
+            1e6
+        );
+        t.implementation = address(new Kite(address(factory)));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IGeneralErrors.UnknownImplementation.selector,
+                t.implementation
+            )
+        );
+        factory.predictAddress(t);
+
+        vm.prank(operator);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IGeneralErrors.UnknownImplementation.selector,
+                t.implementation
+            )
+        );
+        factory.settle(t);
+    }
+
+    function test_factoryCannotBeInitializedAgain() public {
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        factory.initialize(admin, operator);
+
+        KiteFactory logic = new KiteFactory();
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        logic.initialize(admin, operator);
     }
 }

@@ -4,4 +4,5 @@
 export type { IGeneralErrors } from './IGeneralErrors.js';
 export type { IKite } from './IKite.js';
 export type { IKiteFactory } from './IKiteFactory.js';
+export type { IUniswapV2Router02 } from './IUniswapV2Router02.js';
 export type { IWETH9 } from './IWETH9.js';

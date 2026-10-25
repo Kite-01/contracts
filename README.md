@@ -7,7 +7,7 @@ The smart contracts behind [Kite](https://github.com/Kite-01/server), an open-so
 A Kite server creates a transfer: who gets paid, in which token, the minimum to receive, fees, a refund address and an expiry.
 
 1. **Before payment**: `KiteFactory.predictAddress(transfer)` gives the address the customer pays into. Nothing is deployed yet.
-2. **Settling**: once funds arrive, the operator calls `KiteFactory.settle(transfer)`. That deploys a clone of `Kite` at the predicted address and settles it in one transaction: swap through a Uniswap V3 router if the customer paid in another token, pay each fee, and send the rest to the merchant. Anything the customer overpaid goes back to them.
+2. **Settling**: once funds arrive, the operator calls `KiteFactory.settle(transfer)`. That deploys a clone of `Kite` at the predicted address and settles it in one transaction: swap through Uniswap if the customer paid in another token (a V3 pool, or a V2 pair when `poolFeeTier` is 0), pay each fee, and send the rest to the merchant. Anything the customer overpaid goes back to them.
 3. **Refunding**: `KiteFactory.refund(transfer)` returns whatever the contract holds to the refund address. Before expiry only the operator can call it; after expiry anyone can, so a customer is never stuck waiting on the server.
 4. **Recovering**: `KiteFactory.recover(transfer, token, to)` lets the operator retrieve tokens left behind, such as ones sent after settlement or a refund the refund address couldn't accept.
 
@@ -19,6 +19,15 @@ Details worth knowing:
 - A refund the refund address can't accept, such as a contract that rejects ETH, never blocks settlement or leaves the transfer open. The amount stays in the clone for the operator to `recover`, and `Refunded` reports what was actually sent.
 - `Recovered` reports the address the tokens were actually sent to.
 - A clone can't be re-initialised or driven by anyone but the factory.
+
+## Upgrades
+
+`KiteFactory` sits behind a transparent proxy, so its address never changes. The proxy creates a `ProxyAdmin`, owned by the admin, which is the only way to upgrade it:
+
+- **Factory code**: deploy a new `KiteFactory` and call `upgradeAndCall(proxy, newFactory, 0x)` on the `ProxyAdmin`.
+- **`Kite` code**: deploy a `Kite` with the proxy's address and call `setImplementation(newKite)` on the factory as the admin. Only transfers created afterwards use it.
+
+Each transfer names the `Kite` implementation it runs (`transfer.implementation`, read from `implementation()` when the transfer is created). The factory accepts any implementation it has ever used, so a transfer created before an upgrade still settles, refunds and recovers with the code it was created with, and no upgrade can change the code of a clone that already holds funds.
 
 ## Using the package
 
@@ -90,7 +99,7 @@ contracts/
   libraries/
   test/              Solidity tests (forge-std)
 ignition/
-  modules/           deployment module
+  modules/           deployment and upgrade modules
   parameters/        admin and operator for each deployment
   deployments/       records of past deployments
 typechain/           generated TypeScript bindings

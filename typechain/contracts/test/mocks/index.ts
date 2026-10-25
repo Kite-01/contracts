@@ -4,4 +4,5 @@
 export type { ERC20_Mock } from './ERC20_Mock.js';
 export type { Reenterer } from './Reenterer.js';
 export type { SwapRouter_Mock } from './SwapRouter_Mock.js';
+export type { UniswapV2Router_Mock } from './UniswapV2Router_Mock.js';
 export type { WETH9_Mock } from './WETH9_Mock.js';

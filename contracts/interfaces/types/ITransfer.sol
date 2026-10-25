@@ -15,6 +15,9 @@ interface ITransfer {
         address refundAddress;
         uint256 expiresAt;
         address routerAddress;
+        // Uniswap V3 pool fee; 0 swaps through a Uniswap V2 router instead
+        // when token in and out is not same
         uint24 poolFeeTier;
+        address implementation;
     }
 }

@@ -1,3 +1,6 @@
 {
-  "KiteFactoryModule#KiteFactory": "0x8993cFd318Ded220381f37d6209027D36B6CF117"
+  "KiteFactoryModule#KiteFactory": "0x60c39c24619be51bC7Ef1B82EaE6d922f9F6da1E",
+  "KiteFactoryModule#TransparentUpgradeableProxy": "0xe64c2BC999326A9C41d12F99ce2dE80088ACeB4d",
+  "KiteFactoryModule#KiteFactoryProxy": "0xe64c2BC999326A9C41d12F99ce2dE80088ACeB4d",
+  "KiteFactoryModule#ProxyAdmin": "0xFE31eE4cc9B1fb22A920Fa6B8906c9821d67f686"
 }
