@@ -4,4 +4,5 @@
 export { ERC20_Mock__factory } from './ERC20_Mock__factory.js';
 export { Reenterer__factory } from './Reenterer__factory.js';
 export { SwapRouter_Mock__factory } from './SwapRouter_Mock__factory.js';
+export { UniswapV2Router_Mock__factory } from './UniswapV2Router_Mock__factory.js';
 export { WETH9_Mock__factory } from './WETH9_Mock__factory.js';

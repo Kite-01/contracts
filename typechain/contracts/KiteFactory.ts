@@ -14,16 +14,16 @@ export declare namespace IFee {
 
 export declare namespace ITransfer {
       
-    export type TransferStruct = {id: BytesLike, payInTokenAddress: AddressLike, amountIn: BigNumberish, settlementTokenAddress: AddressLike, settlementRecipient: AddressLike, minAmountOut: BigNumberish, fees: IFee.FeeStruct[], refundAddress: AddressLike, expiresAt: BigNumberish, routerAddress: AddressLike, poolFeeTier: BigNumberish}
+    export type TransferStruct = {id: BytesLike, payInTokenAddress: AddressLike, amountIn: BigNumberish, settlementTokenAddress: AddressLike, settlementRecipient: AddressLike, minAmountOut: BigNumberish, fees: IFee.FeeStruct[], refundAddress: AddressLike, expiresAt: BigNumberish, routerAddress: AddressLike, poolFeeTier: BigNumberish, implementation: AddressLike}
 
-    export type TransferStructOutput = [id: string, payInTokenAddress: string, amountIn: bigint, settlementTokenAddress: string, settlementRecipient: string, minAmountOut: bigint, fees: IFee.FeeStructOutput[], refundAddress: string, expiresAt: bigint, routerAddress: string, poolFeeTier: bigint] & {id: string, payInTokenAddress: string, amountIn: bigint, settlementTokenAddress: string, settlementRecipient: string, minAmountOut: bigint, fees: IFee.FeeStructOutput[], refundAddress: string, expiresAt: bigint, routerAddress: string, poolFeeTier: bigint }
+    export type TransferStructOutput = [id: string, payInTokenAddress: string, amountIn: bigint, settlementTokenAddress: string, settlementRecipient: string, minAmountOut: bigint, fees: IFee.FeeStructOutput[], refundAddress: string, expiresAt: bigint, routerAddress: string, poolFeeTier: bigint, implementation: string] & {id: string, payInTokenAddress: string, amountIn: bigint, settlementTokenAddress: string, settlementRecipient: string, minAmountOut: bigint, fees: IFee.FeeStructOutput[], refundAddress: string, expiresAt: bigint, routerAddress: string, poolFeeTier: bigint, implementation: string }
   
     }
 
   export interface KiteFactoryInterface extends Interface {
-    getFunction(nameOrSignature: "DEFAULT_ADMIN_ROLE" | "OPERATOR_ROLE" | "deploy" | "getRoleAdmin" | "grantRole" | "hasRole" | "implementation" | "predictAddress" | "recover" | "refund" | "renounceRole" | "revokeRole" | "settle" | "supportsInterface"): FunctionFragment;
+    getFunction(nameOrSignature: "DEFAULT_ADMIN_ROLE" | "OPERATOR_ROLE" | "deploy" | "getRoleAdmin" | "grantRole" | "hasRole" | "implementation" | "initialize" | "isImplementation" | "predictAddress" | "recover" | "refund" | "renounceRole" | "revokeRole" | "setImplementation" | "settle" | "supportsInterface"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "Deployed" | "RoleAdminChanged" | "RoleGranted" | "RoleRevoked"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "Deployed" | "ImplementationSet" | "Initialized" | "RoleAdminChanged" | "RoleGranted" | "RoleRevoked"): EventFragment;
 
     encodeFunctionData(functionFragment: 'DEFAULT_ADMIN_ROLE', values?: undefined): string;
 encodeFunctionData(functionFragment: 'OPERATOR_ROLE', values?: undefined): string;
@@ -32,11 +32,14 @@ encodeFunctionData(functionFragment: 'getRoleAdmin', values: [BytesLike]): strin
 encodeFunctionData(functionFragment: 'grantRole', values: [BytesLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'hasRole', values: [BytesLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'implementation', values?: undefined): string;
+encodeFunctionData(functionFragment: 'initialize', values: [AddressLike, AddressLike]): string;
+encodeFunctionData(functionFragment: 'isImplementation', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'predictAddress', values: [ITransfer.TransferStruct]): string;
 encodeFunctionData(functionFragment: 'recover', values: [ITransfer.TransferStruct, AddressLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'refund', values: [ITransfer.TransferStruct]): string;
 encodeFunctionData(functionFragment: 'renounceRole', values: [BytesLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'revokeRole', values: [BytesLike, AddressLike]): string;
+encodeFunctionData(functionFragment: 'setImplementation', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'settle', values: [ITransfer.TransferStruct]): string;
 encodeFunctionData(functionFragment: 'supportsInterface', values: [BytesLike]): string;
 
@@ -47,11 +50,14 @@ decodeFunctionResult(functionFragment: 'getRoleAdmin', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'grantRole', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'hasRole', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'implementation', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'initialize', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'isImplementation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'predictAddress', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'recover', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'refund', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'renounceRole', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'revokeRole', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'setImplementation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'settle', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'supportsInterface', data: BytesLike): Result;
   }
@@ -61,6 +67,30 @@ decodeFunctionResult(functionFragment: 'supportsInterface', data: BytesLike): Re
       export type InputTuple = [transferId: BytesLike, kite: AddressLike];
       export type OutputTuple = [transferId: string, kite: string];
       export interface OutputObject {transferId: string, kite: string };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace ImplementationSetEvent {
+      export type InputTuple = [implementation: AddressLike];
+      export type OutputTuple = [implementation: string];
+      export interface OutputObject {implementation: string };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace InitializedEvent {
+      export type InputTuple = [version: BigNumberish];
+      export type OutputTuple = [version: bigint];
+      export interface OutputObject {version: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -195,6 +225,22 @@ decodeFunctionResult(functionFragment: 'supportsInterface', data: BytesLike): Re
     
 
     
+    initialize: TypedContractMethod<
+      [admin: AddressLike, operator: AddressLike, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    isImplementation: TypedContractMethod<
+      [implementation_: AddressLike, ],
+      [boolean],
+      'view'
+    >
+    
+
+    
     predictAddress: TypedContractMethod<
       [transfer: ITransfer.TransferStruct, ],
       [string],
@@ -229,6 +275,14 @@ decodeFunctionResult(functionFragment: 'supportsInterface', data: BytesLike): Re
     
     revokeRole: TypedContractMethod<
       [role: BytesLike, account: AddressLike, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    setImplementation: TypedContractMethod<
+      [implementation_: AddressLike, ],
       [void],
       'nonpayable'
     >
@@ -288,6 +342,16 @@ getFunction(nameOrSignature: 'implementation'): TypedContractMethod<
       [string],
       'view'
     >;
+getFunction(nameOrSignature: 'initialize'): TypedContractMethod<
+      [admin: AddressLike, operator: AddressLike, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'isImplementation'): TypedContractMethod<
+      [implementation_: AddressLike, ],
+      [boolean],
+      'view'
+    >;
 getFunction(nameOrSignature: 'predictAddress'): TypedContractMethod<
       [transfer: ITransfer.TransferStruct, ],
       [string],
@@ -313,6 +377,11 @@ getFunction(nameOrSignature: 'revokeRole'): TypedContractMethod<
       [void],
       'nonpayable'
     >;
+getFunction(nameOrSignature: 'setImplementation'): TypedContractMethod<
+      [implementation_: AddressLike, ],
+      [void],
+      'nonpayable'
+    >;
 getFunction(nameOrSignature: 'settle'): TypedContractMethod<
       [transfer: ITransfer.TransferStruct, ],
       [void],
@@ -325,6 +394,8 @@ getFunction(nameOrSignature: 'supportsInterface'): TypedContractMethod<
     >;
 
     getEvent(key: 'Deployed'): TypedContractEvent<DeployedEvent.InputTuple, DeployedEvent.OutputTuple, DeployedEvent.OutputObject>;
+getEvent(key: 'ImplementationSet'): TypedContractEvent<ImplementationSetEvent.InputTuple, ImplementationSetEvent.OutputTuple, ImplementationSetEvent.OutputObject>;
+getEvent(key: 'Initialized'): TypedContractEvent<InitializedEvent.InputTuple, InitializedEvent.OutputTuple, InitializedEvent.OutputObject>;
 getEvent(key: 'RoleAdminChanged'): TypedContractEvent<RoleAdminChangedEvent.InputTuple, RoleAdminChangedEvent.OutputTuple, RoleAdminChangedEvent.OutputObject>;
 getEvent(key: 'RoleGranted'): TypedContractEvent<RoleGrantedEvent.InputTuple, RoleGrantedEvent.OutputTuple, RoleGrantedEvent.OutputObject>;
 getEvent(key: 'RoleRevoked'): TypedContractEvent<RoleRevokedEvent.InputTuple, RoleRevokedEvent.OutputTuple, RoleRevokedEvent.OutputObject>;
@@ -333,6 +404,14 @@ getEvent(key: 'RoleRevoked'): TypedContractEvent<RoleRevokedEvent.InputTuple, Ro
       
       'Deployed(bytes32,address)': TypedContractEvent<DeployedEvent.InputTuple, DeployedEvent.OutputTuple, DeployedEvent.OutputObject>;
       Deployed: TypedContractEvent<DeployedEvent.InputTuple, DeployedEvent.OutputTuple, DeployedEvent.OutputObject>;
+    
+
+      'ImplementationSet(address)': TypedContractEvent<ImplementationSetEvent.InputTuple, ImplementationSetEvent.OutputTuple, ImplementationSetEvent.OutputObject>;
+      ImplementationSet: TypedContractEvent<ImplementationSetEvent.InputTuple, ImplementationSetEvent.OutputTuple, ImplementationSetEvent.OutputObject>;
+    
+
+      'Initialized(uint64)': TypedContractEvent<InitializedEvent.InputTuple, InitializedEvent.OutputTuple, InitializedEvent.OutputObject>;
+      Initialized: TypedContractEvent<InitializedEvent.InputTuple, InitializedEvent.OutputTuple, InitializedEvent.OutputObject>;
     
 
       'RoleAdminChanged(bytes32,bytes32,bytes32)': TypedContractEvent<RoleAdminChangedEvent.InputTuple, RoleAdminChangedEvent.OutputTuple, RoleAdminChangedEvent.OutputObject>;

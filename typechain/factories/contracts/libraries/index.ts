@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export { Constants__factory } from './Constants__factory.js';
+export { Storage__factory } from './Storage__factory.js';

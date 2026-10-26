@@ -15,4 +15,5 @@ interface IGeneralErrors {
     error OnlyFactory();
     error InsufficientGas();
     error RefundFailed(address to);
+    error UnknownImplementation(address implementation);
 }

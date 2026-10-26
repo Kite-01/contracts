@@ -4,4 +4,5 @@
 export { IGeneralErrors__factory } from './IGeneralErrors__factory.js';
 export { IKite__factory } from './IKite__factory.js';
 export { IKiteFactory__factory } from './IKiteFactory__factory.js';
+export { IUniswapV2Router02__factory } from './IUniswapV2Router02__factory.js';
 export { IWETH9__factory } from './IWETH9__factory.js';

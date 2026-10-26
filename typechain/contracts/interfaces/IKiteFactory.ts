@@ -14,27 +14,33 @@ export declare namespace IFee {
 
 export declare namespace ITransfer {
       
-    export type TransferStruct = {id: BytesLike, payInTokenAddress: AddressLike, amountIn: BigNumberish, settlementTokenAddress: AddressLike, settlementRecipient: AddressLike, minAmountOut: BigNumberish, fees: IFee.FeeStruct[], refundAddress: AddressLike, expiresAt: BigNumberish, routerAddress: AddressLike, poolFeeTier: BigNumberish}
+    export type TransferStruct = {id: BytesLike, payInTokenAddress: AddressLike, amountIn: BigNumberish, settlementTokenAddress: AddressLike, settlementRecipient: AddressLike, minAmountOut: BigNumberish, fees: IFee.FeeStruct[], refundAddress: AddressLike, expiresAt: BigNumberish, routerAddress: AddressLike, poolFeeTier: BigNumberish, implementation: AddressLike}
 
-    export type TransferStructOutput = [id: string, payInTokenAddress: string, amountIn: bigint, settlementTokenAddress: string, settlementRecipient: string, minAmountOut: bigint, fees: IFee.FeeStructOutput[], refundAddress: string, expiresAt: bigint, routerAddress: string, poolFeeTier: bigint] & {id: string, payInTokenAddress: string, amountIn: bigint, settlementTokenAddress: string, settlementRecipient: string, minAmountOut: bigint, fees: IFee.FeeStructOutput[], refundAddress: string, expiresAt: bigint, routerAddress: string, poolFeeTier: bigint }
+    export type TransferStructOutput = [id: string, payInTokenAddress: string, amountIn: bigint, settlementTokenAddress: string, settlementRecipient: string, minAmountOut: bigint, fees: IFee.FeeStructOutput[], refundAddress: string, expiresAt: bigint, routerAddress: string, poolFeeTier: bigint, implementation: string] & {id: string, payInTokenAddress: string, amountIn: bigint, settlementTokenAddress: string, settlementRecipient: string, minAmountOut: bigint, fees: IFee.FeeStructOutput[], refundAddress: string, expiresAt: bigint, routerAddress: string, poolFeeTier: bigint, implementation: string }
   
     }
 
   export interface IKiteFactoryInterface extends Interface {
-    getFunction(nameOrSignature: "deploy" | "predictAddress" | "recover" | "refund" | "settle"): FunctionFragment;
+    getFunction(nameOrSignature: "deploy" | "implementation" | "isImplementation" | "predictAddress" | "recover" | "refund" | "setImplementation" | "settle"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "Deployed"): EventFragment;
 
     encodeFunctionData(functionFragment: 'deploy', values: [ITransfer.TransferStruct]): string;
+encodeFunctionData(functionFragment: 'implementation', values?: undefined): string;
+encodeFunctionData(functionFragment: 'isImplementation', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'predictAddress', values: [ITransfer.TransferStruct]): string;
 encodeFunctionData(functionFragment: 'recover', values: [ITransfer.TransferStruct, AddressLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'refund', values: [ITransfer.TransferStruct]): string;
+encodeFunctionData(functionFragment: 'setImplementation', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'settle', values: [ITransfer.TransferStruct]): string;
 
     decodeFunctionResult(functionFragment: 'deploy', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'implementation', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'isImplementation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'predictAddress', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'recover', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'refund', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'setImplementation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'settle', data: BytesLike): Result;
   }
 
@@ -93,6 +99,22 @@ decodeFunctionResult(functionFragment: 'settle', data: BytesLike): Result;
     
 
     
+    implementation: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
+    
+    isImplementation: TypedContractMethod<
+      [implementation_: AddressLike, ],
+      [boolean],
+      'view'
+    >
+    
+
+    
     predictAddress: TypedContractMethod<
       [transfer: ITransfer.TransferStruct, ],
       [string],
@@ -117,6 +139,14 @@ decodeFunctionResult(functionFragment: 'settle', data: BytesLike): Result;
     
 
     
+    setImplementation: TypedContractMethod<
+      [implementation_: AddressLike, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
     settle: TypedContractMethod<
       [transfer: ITransfer.TransferStruct, ],
       [void],
@@ -132,6 +162,16 @@ decodeFunctionResult(functionFragment: 'settle', data: BytesLike): Result;
       [string],
       'nonpayable'
     >;
+getFunction(nameOrSignature: 'implementation'): TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >;
+getFunction(nameOrSignature: 'isImplementation'): TypedContractMethod<
+      [implementation_: AddressLike, ],
+      [boolean],
+      'view'
+    >;
 getFunction(nameOrSignature: 'predictAddress'): TypedContractMethod<
       [transfer: ITransfer.TransferStruct, ],
       [string],
@@ -144,6 +184,11 @@ getFunction(nameOrSignature: 'recover'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'refund'): TypedContractMethod<
       [transfer: ITransfer.TransferStruct, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'setImplementation'): TypedContractMethod<
+      [implementation_: AddressLike, ],
       [void],
       'nonpayable'
     >;

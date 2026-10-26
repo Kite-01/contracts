@@ -4,6 +4,14 @@ pragma solidity ^0.8.20;
 import {ITransfer} from "./types/ITransfer.sol";
 
 interface IKiteFactory is ITransfer {
+    function implementation() external view returns (address);
+
+    function isImplementation(
+        address implementation_
+    ) external view returns (bool);
+
+    function setImplementation(address implementation_) external;
+
     function predictAddress(
         ITransfer.Transfer calldata transfer
     ) external view returns (address);
