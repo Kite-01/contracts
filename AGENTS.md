@@ -1,5 +1,9 @@
 # Hardhat + viem project
 
+## About this repository
+
+`KiteFactory` and `Kite`, the contracts behind [Kite](https://github.com/Kite-01/server), published as `@kite-01/contracts`. The [README](README.md) explains how they work and lists the deployments and commands (`npm install`, `npm run compile`, `npm test`).
+
 ## Project layout
 
 ```

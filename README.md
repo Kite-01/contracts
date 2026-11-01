@@ -45,12 +45,7 @@ It exports the Solidity sources (`@kite-01/contracts/contracts/*`), the compiled
 
 ## Deployments
 
-| Network               | `KiteFactory`                                |
-| --------------------- | -------------------------------------------- |
-| Base Sepolia (84532)  | `0x8993cFd318Ded220381f37d6209027D36B6CF117` |
-| Monad Testnet (10143) | `0x60c39c24619be51bC7Ef1B82EaE6d922f9F6da1E` |
-
-The full deployment records are in `ignition/deployments/`.
+[`ignition/deployments/`](ignition/deployments) records our own deployments, in a `chain-<chain id>` folder each. They're operated by our servers, so they won't work with yours: a Kite server only settles through a factory where its operator wallet holds the operator role. [Deploy your own](#deploying).
 
 ## Development
 
@@ -58,11 +53,21 @@ You need Node.js 22.13 or newer.
 
 ```sh
 npm install
-npm run compile   # compile the contracts and generate TypeChain bindings
-npm test          # run the Solidity tests in contracts/test/
-npm run build     # compile and build the package into dist/
-npm run node      # start a local Hardhat node
-npm run clean     # remove build artifacts
+
+# compile the contracts and generate TypeChain bindings
+npm run compile
+
+# run the Solidity tests in contracts/test/
+npm test
+
+# compile and build the package into dist/
+npm run build
+
+# start a local Hardhat node
+npm run node
+
+# remove build artifacts
+npm run clean
 ```
 
 The contracts compile with Solidity 0.8.34, optimizer on at 200 runs, targeting the Paris EVM.
@@ -80,14 +85,25 @@ The factory deploys with Hardhat Ignition, taking its admin and operator from `i
 }
 ```
 
-The operator should be the address of the Kite server's operator wallet, which settles and refunds transfers. Then:
+The operator must be your Kite server's operator wallet, which settles and refunds transfers: the first account of its `KITE_OPERATOR_MNEMONIC` ([how to print its address](https://github.com/Kite-01/server#getting-started)). The server refuses a factory where that wallet isn't an operator. Then:
 
 ```sh
-npm run deploy-factory           # to the local in-process network
-npm run deploy-factory:mainnet   # to the network at FORK_URL
+# to the local in-process network
+npm run deploy-factory
+
+# to the network at FORK_URL
+npm run deploy-factory:mainnet
 ```
 
 `deploy-factory:mainnet` deploys to whichever RPC `FORK_URL` points at, signing with `PRIVATE_KEY` and verifying on Etherscan with `ETHERSCAN_API_KEY`. Set them in a `.env` file or as Hardhat configuration variables.
+
+Ignition files a deployment under `ignition/deployments/chain-<chain id>/` unless you name it. On a chain where we've deployed, that folder already holds our records, so give yours a name:
+
+```sh
+npm run deploy-factory:mainnet -- --deployment-id my-kite-base
+```
+
+Configure your Kite server with `KiteFactoryModule#KiteFactoryProxy` from that deployment's `deployed_addresses.json`. It's the factory's address, and upgrades don't change it.
 
 ## Project layout
 
