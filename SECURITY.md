@@ -4,7 +4,7 @@ These contracts hold and move funds, so we take reports seriously and will work 
 
 ## Reporting a vulnerability
 
-Email **momoreoluwaadedeji@gmail.com** with:
+Email **mailto:security@usekite.site** with:
 
 - what the issue is and what an attacker could do with it
 - the contract and function involved, and the commit or deployed address you looked at
