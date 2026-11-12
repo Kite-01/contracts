@@ -3,10 +3,11 @@
  * In one transaction it deploys the new implementation through the CREATE2 deployer (if it is not
  * there yet) and calls ProxyAdmin.upgradeAndCall. Your EOA must own the ProxyAdmin.
  *
- *   FACTORY=0x... npm run upgrade-factory:7702
+ *   npm run upgrade-factory:7702
  *
  * Environment:
- *   FACTORY                     The KiteFactory proxy address
+ *   FACTORY                     The KiteFactory proxy address (defaults to KiteFactoryProxy in
+ *                               deployments/7702/chain-<chain id>.json)
  *   PRIVATE_KEY, ALCHEMY_API_KEY, ALCHEMY_GAS_POLICY_ID   As for deploy-factory-7702.ts
  *   SALT                        CREATE2 salt for the new implementation (defaults to 0x00…00)
  *   ALLOW_SAME_IMPLEMENTATION   Set to "true" to upgrade even if the proxy already runs this code
@@ -32,12 +33,8 @@ import {
 import { ADMIN_SLOT, IMPLEMENTATION_SLOT } from "./lib/constants.js";
 import { CONTRACTS, verifyAll } from "./lib/verify.js";
 import { planFactoryUpgrade } from "./lib/factory-deployment.js";
+import { factoryAddress, updateRecord } from "./lib/records.js";
 import hre from "hardhat";
-
-const factory = optionalAddress("FACTORY");
-if (factory === undefined) {
-  throw new Error("Set FACTORY to the KiteFactory proxy address");
-}
 
 const salt = optionalEnv("SALT") || zeroHash;
 if (!isHex(salt) || size(salt) !== 32) {
@@ -50,6 +47,7 @@ const connection = await hre.network.create();
 const { viem } = connection;
 const publicClient = await viem.getPublicClient();
 const chain = publicClient.chain;
+const factory = await factoryAddress(chain.id, optionalAddress("FACTORY"));
 
 const readSlotAddress = async (slot: Hex): Promise<Address> => {
   const value = await publicClient.getStorageAt({
@@ -126,6 +124,12 @@ if (
 
   console.log(
     `\nKiteFactory ${factory} now runs ${plan.implementation} (tx ${txHash})`,
+  );
+
+  await updateRecord(
+    chain.id,
+    { KiteFactoryProxy: factory, KiteFactoryImplementation: plan.implementation },
+    { action: "upgrade-factory", hash: txHash },
   );
 }
 

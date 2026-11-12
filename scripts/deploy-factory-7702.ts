@@ -13,7 +13,8 @@
  *                           the same on every chain to get the same factory address everywhere.
  *   VERIFY                  Set to "false" to skip verifying on the block explorer
  *
- * Once deployed, it verifies the contracts. Rerunning it with the same settings skips the deployment and only verifies.
+ * The addresses go to deployments/7702/chain-<chain id>.json; KiteFactoryProxy is the factory's
+ * address, the one your Kite server uses. Once deployed, it verifies the contracts. Rerunning it with the same settings skips the deployment and only verifies.
  */
 import {
   type Call,
@@ -36,6 +37,7 @@ import { CONTRACTS, verifyAll } from "./lib/verify.js";
 import { readFile } from "node:fs/promises";
 import hre from "hardhat";
 import { CREATE2_DEPLOYER } from "./lib/constants.js";
+import { updateRecord } from "./lib/records.js";
 
 const ignitionOperator = async (): Promise<Address | undefined> => {
   const path = "../ignition/parameters/KiteFactory.json";
@@ -94,7 +96,7 @@ console.log(`Operator:       ${operator ?? "(not set)"}`);
 console.log(`Proxy owner:    ${proxyOwner}`);
 console.log(`Salt:           ${salt}`);
 console.log(`Implementation: ${plan.implementation}`);
-console.log(`Factory:        ${plan.factory}`);
+console.log(`Factory:        ${plan.factory} (KiteFactoryProxy, for your Kite server)`);
 console.log(`ProxyAdmin:     ${plan.proxyAdmin}\n`);
 
 if (!(await hasCode(publicClient, CREATE2_DEPLOYER))) {
@@ -104,6 +106,7 @@ if (!(await hasCode(publicClient, CREATE2_DEPLOYER))) {
   );
 }
 
+let txHash;
 if (await hasCode(publicClient, plan.factory)) {
   console.log("Factory already deployed, skipping to verification.");
 } else {
@@ -117,7 +120,7 @@ if (await hasCode(publicClient, plan.factory)) {
 
   calls.push(plan.factoryCall);
 
-  const txHash = await sendSponsoredCalls(chain, calls);
+  txHash = await sendSponsoredCalls(chain, calls);
 
   for (const address of [plan.implementation, plan.factory, plan.proxyAdmin]) {
     if (!(await hasCode(publicClient, address))) {
@@ -128,16 +131,27 @@ if (await hasCode(publicClient, plan.factory)) {
   console.log(`\nKiteFactory deployed at ${plan.factory} (tx ${txHash})`);
 }
 
+const factory = await connection.viem.getContractAt(
+  "KiteFactory",
+  plan.factory,
+);
+
+const kiteImplementation = await factory.read.implementation();
+
+await updateRecord(
+  chain.id,
+  {
+    KiteFactoryProxy: plan.factory,
+    KiteFactoryImplementation: plan.implementation,
+    ProxyAdmin: plan.proxyAdmin,
+    KiteImplementation: kiteImplementation,
+  },
+  { action: "deploy-factory", hash: txHash },
+);
+
 if (optionalEnv("VERIFY") === "false") {
   console.log("VERIFY=false, skipping verification.");
 } else {
-  const factory = await connection.viem.getContractAt(
-    "KiteFactory",
-    plan.factory,
-  );
-
-  const kiteImplementation = await factory.read.implementation();
-
   console.log("\nVerifying...");
 
   await verifyAll(hre, chain.id, [

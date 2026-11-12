@@ -25,7 +25,16 @@ export default defineConfig({
   },
   plugins: [hardhatToolboxViemPlugin, hardhatTypechain, hardhatVerify],
   solidity: {
-    compilers: [DefaultCompilerSettings],
+    // Hardhat derives the production profile (used by `hardhat ignition deploy`) from the version
+    // alone, dropping evmVersion and metadata, so both profiles are spelled out to compile alike
+    profiles: {
+      default: {
+        compilers: [DefaultCompilerSettings],
+      },
+      production: {
+        compilers: [DefaultCompilerSettings],
+      },
+    },
     npmFilesToBuild: [
       "@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol",
       "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",

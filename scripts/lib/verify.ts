@@ -124,6 +124,17 @@ export async function verifyAll(
             error instanceof Error ? error.message : String(error)
           ).split("\n")[0];
 
+          if (message.startsWith("no result after")) {
+            // The explorer accepted the source but hasn't processed it (e.g. Etherscan's
+            // "Pending in queue"). Resubmitting only queues it again, so move on.
+            console.error(
+              `[${provider}] ${name} at ${address} is still in the explorer's queue after ${timeoutMs / 1000}s; it may verify on its own later`,
+            );
+
+            allVerified = false;
+            break;
+          }
+
           const refused = /status code 40[13]|not supported/i.test(message);
           if (refused || attempt >= attempts) {
             console.error(

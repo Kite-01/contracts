@@ -45,7 +45,7 @@ It exports the Solidity sources (`@kite-01/contracts/contracts/*`), the compiled
 
 ## Deployments
 
-[`ignition/deployments/`](ignition/deployments) records our own deployments, in a `chain-<chain id>` folder each. They're operated by our servers, so they won't work with yours: a Kite server only settles through a factory where its operator wallet holds the operator role. [Deploy your own](#deploying).
+[`ignition/deployments/`](ignition/deployments) and [`deployments/7702/`](deployments/7702) record our own deployments, one `chain-<chain id>` entry per chain. They're operated by our servers, so they won't work with yours: a Kite server only settles through a factory where its operator wallet holds the operator role. [Deploy your own](#deploying).
 
 ## Development
 
@@ -54,7 +54,7 @@ You need Node.js 22.13 or newer.
 ```sh
 npm install
 
-# compile the contracts and generate TypeChain bindings
+# compile the contracts and generate TypeChain bindings in typechain/ (not committed)
 npm run compile
 
 # run the Solidity tests in contracts/test/ and the TypeScript tests in test/
@@ -129,11 +129,13 @@ Set `FORK_URL`, `PRIVATE_KEY`, `ALCHEMY_API_KEY` and `ALCHEMY_GAS_POLICY_ID` (a 
 npm run deploy-factory:7702
 
 # deploys the current KiteFactory code and upgrades the proxy to it; your EOA must own the ProxyAdmin
-FACTORY=0x… npm run upgrade-factory:7702
+npm run upgrade-factory:7702
 
 # deploys the current Kite code and calls setImplementation; your EOA must be the factory's admin
-FACTORY=0x… npm run upgrade-kite:7702
+npm run upgrade-kite:7702
 ```
+
+Each script saves what's deployed on the chain to `deployments/7702/chain-<chain id>.json`, along with its transactions. Configure your Kite server with `KiteFactoryProxy` from that file: it's the factory's address, and upgrades don't change it. The upgrades read it from there too; set `FACTORY` to upgrade a factory the file doesn't name.
 
 The upgrades skip themselves when the code hasn't changed; set `ALLOW_SAME_IMPLEMENTATION=true` to send them anyway. A new `Kite` only applies to transfers created afterwards (see [Upgrades](#upgrades)).
 
@@ -154,7 +156,8 @@ ignition/
   modules/           deployment and upgrade modules
   parameters/        admin and operator for each deployment
   deployments/       records of past deployments
-typechain/           generated TypeScript bindings
+typechain/           generated TypeScript bindings (not committed)
+deployments/7702/    records of the gasless (EIP-7702) deployments
 ```
 
 ## Contributing

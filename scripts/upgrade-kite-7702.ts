@@ -4,10 +4,11 @@
  * not there yet) and calls KiteFactory.setImplementation. Your EOA must hold DEFAULT_ADMIN_ROLE.
  * Only transfers created afterwards use the new code.
  *
- *   FACTORY=0x... npm run upgrade-kite:7702
+ *   npm run upgrade-kite:7702
  *
  * Environment:
- *   FACTORY                     The KiteFactory proxy address
+ *   FACTORY                     The KiteFactory proxy address (defaults to KiteFactoryProxy in
+ *                               deployments/7702/chain-<chain id>.json)
  *   PRIVATE_KEY, ALCHEMY_API_KEY, ALCHEMY_GAS_POLICY_ID   As for deploy-factory-7702.ts
  *   SALT                        CREATE2 salt for the new implementation (defaults to 0x00…00)
  *   ALLOW_SAME_IMPLEMENTATION   Set to "true" to upgrade even if the factory already runs this code
@@ -24,12 +25,8 @@ import {
 } from "./lib/sponsored.js";
 import { CONTRACTS, verifyAll } from "./lib/verify.js";
 import { planKiteUpgrade } from "./lib/factory-deployment.js";
+import { factoryAddress as resolveFactory, updateRecord } from "./lib/records.js";
 import hre from "hardhat";
-
-const factoryAddress = optionalAddress("FACTORY");
-if (factoryAddress === undefined) {
-  throw new Error("Set FACTORY to the KiteFactory proxy address");
-}
 
 const salt = optionalEnv("SALT") || zeroHash;
 if (!isHex(salt) || size(salt) !== 32) {
@@ -42,6 +39,10 @@ const connection = await hre.network.create();
 const { viem } = connection;
 const publicClient = await viem.getPublicClient();
 const chain = publicClient.chain;
+const factoryAddress = await resolveFactory(
+  chain.id,
+  optionalAddress("FACTORY"),
+);
 
 const factory = await viem.getContractAt("KiteFactory", factoryAddress);
 const currentImplementation = await factory.read.implementation();
@@ -111,6 +112,12 @@ if (unchanged && optionalEnv("ALLOW_SAME_IMPLEMENTATION") !== "true") {
 
   console.log(
     `\nKiteFactory ${factoryAddress} now uses Kite ${plan.implementation} (tx ${txHash})`,
+  );
+
+  await updateRecord(
+    chain.id,
+    { KiteFactoryProxy: factoryAddress, KiteImplementation: plan.implementation },
+    { action: "upgrade-kite", hash: txHash },
   );
 }
 
