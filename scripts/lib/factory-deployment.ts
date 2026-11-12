@@ -1,9 +1,8 @@
-import { CREATE2_DEPLOYER } from "./constants.js";
+import { createXDeploy } from "./createx.js";
 import {
   type Abi,
   type Address,
   type Hex,
-  concat,
   encodeDeployData,
   encodeFunctionData,
   getContractAddress,
@@ -15,16 +14,18 @@ interface Artifact {
   bytecode: Hex;
 }
 
-export interface FactoryDeploymentParams {
+interface Deployer {
+  sender: Address;
+  chainId: number;
+  salt?: Hex;
+}
+
+export interface FactoryDeploymentParams extends Deployer {
   kiteFactory: Artifact;
   transparentUpgradeableProxy: Artifact;
-  /** Gets DEFAULT_ADMIN_ROLE on the factory */
   admin: Address;
-  /** Gets OPERATOR_ROLE on the factory */
   operator: Address;
-  /** Owns the ProxyAdmin, i.e. can upgrade the factory */
   proxyOwner: Address;
-  salt?: Hex;
 }
 
 export function planFactoryDeployment({
@@ -33,15 +34,18 @@ export function planFactoryDeployment({
   admin,
   operator,
   proxyOwner,
+  sender,
+  chainId,
   salt = zeroHash,
 }: FactoryDeploymentParams) {
-  const implementation = getContractAddress({
-    opcode: "CREATE2",
-    from: CREATE2_DEPLOYER,
-    bytecode: kiteFactory.bytecode,
+  const implementationDeploy = createXDeploy({
+    initCode: kiteFactory.bytecode,
     salt,
+    sender,
+    chainId,
   });
 
+  const implementation = implementationDeploy.address;
   const proxyConstructorArgs = [
     implementation,
     proxyOwner,
@@ -58,13 +62,14 @@ export function planFactoryDeployment({
     args: proxyConstructorArgs,
   });
 
-  const factory = getContractAddress({
-    opcode: "CREATE2",
-    from: CREATE2_DEPLOYER,
+  const factoryDeploy = createXDeploy({
+    initCode: proxyInitCode,
     salt,
-    bytecode: proxyInitCode,
+    sender,
+    chainId,
   });
 
+  const factory = factoryDeploy.address;
   const proxyAdmin = getContractAddress({
     from: factory,
     nonce: 2n,
@@ -75,52 +80,39 @@ export function planFactoryDeployment({
     factory,
     proxyAdmin,
     proxyConstructorArgs,
-    implementationCall: {
-      to: CREATE2_DEPLOYER,
-      data: concat([salt, kiteFactory.bytecode]),
-    },
-    factoryCall: {
-      to: CREATE2_DEPLOYER,
-      data: concat([salt, proxyInitCode]),
-    },
+    implementationCall: implementationDeploy.call,
+    factoryCall: factoryDeploy.call,
   };
 }
 
-export interface FactoryUpgradeParams {
+export interface FactoryUpgradeParams extends Deployer {
   kiteFactory: Artifact;
   proxyAdmin: Artifact;
   factory: Address;
   proxyAdminAddress: Address;
-  /** Data for a call on the factory right after the upgrade (default: none) */
   callData?: Hex;
-  salt?: Hex;
 }
 
-/**
- *
- * The upgrade call must come from the ProxyAdmin's owner
- */
 export function planFactoryUpgrade({
   kiteFactory,
   proxyAdmin,
   factory,
   proxyAdminAddress,
   callData = "0x",
+  sender,
+  chainId,
   salt = zeroHash,
 }: FactoryUpgradeParams) {
-  const implementation = getContractAddress({
-    opcode: "CREATE2",
-    from: CREATE2_DEPLOYER,
+  const { address: implementation, call: implementationCall } = createXDeploy({
+    initCode: kiteFactory.bytecode,
     salt,
-    bytecode: kiteFactory.bytecode,
+    sender,
+    chainId,
   });
 
   return {
     implementation,
-    implementationCall: {
-      to: CREATE2_DEPLOYER,
-      data: concat([salt, kiteFactory.bytecode]),
-    },
+    implementationCall,
     upgradeCall: {
       to: proxyAdminAddress,
       data: encodeFunctionData({
@@ -132,18 +124,18 @@ export function planFactoryUpgrade({
   };
 }
 
-export interface KiteUpgradeParams {
+export interface KiteUpgradeParams extends Deployer {
   kite: Artifact;
   kiteFactory: Artifact;
-  /** The KiteFactory proxy the new Kite belongs to */
   factory: Address;
-  salt?: Hex;
 }
 
 export function planKiteUpgrade({
   kite,
   kiteFactory,
   factory,
+  sender,
+  chainId,
   salt = zeroHash,
 }: KiteUpgradeParams) {
   const constructorArgs = [factory] as const;
@@ -153,21 +145,18 @@ export function planKiteUpgrade({
     args: constructorArgs,
   });
 
-  const implementation = getContractAddress({
-    opcode: "CREATE2",
-    from: CREATE2_DEPLOYER,
+  const { address: implementation, call: implementationCall } = createXDeploy({
+    initCode,
     salt,
-    bytecode: initCode,
+    sender,
+    chainId,
   });
 
   return {
     implementation,
     initCode,
     constructorArgs,
-    implementationCall: {
-      to: CREATE2_DEPLOYER,
-      data: concat([salt, initCode]),
-    },
+    implementationCall,
     setImplementationCall: {
       to: factory,
       data: encodeFunctionData({

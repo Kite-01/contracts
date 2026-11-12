@@ -1,43 +1,18 @@
-/**
- *   npm run deploy-factory:7702
- *
- * Environment:
- *   PRIVATE_KEY             Your EOA. It is delegated to Alchemy's smart account and sends the calls.
- *   ALCHEMY_API_KEY         Alchemy API key
- *   ALCHEMY_GAS_POLICY_ID   Gas sponsorship policy covering this chain
- *   ADMIN                   DEFAULT_ADMIN_ROLE holder (defaults to your EOA)
- *   OPERATOR                OPERATOR_ROLE holder (defaults to the operator in
- *                           ignition/parameters/KiteFactory.json)
- *   PROXY_OWNER             Owner of the ProxyAdmin, i.e. who can upgrade (defaults to your EOA)
- *   SALT                    CREATE2 salt (defaults to 0x00…00). Keep it, and the addresses above,
- *                           the same on every chain to get the same factory address everywhere.
- *   VERIFY                  Set to "false" to skip verifying on the block explorer
- *
- * The addresses go to deployments/7702/chain-<chain id>.json; KiteFactoryProxy is the factory's
- * address, the one your Kite server uses. Once deployed, it verifies the contracts. Rerunning it with the same settings skips the deployment and only verifies.
- */
 import {
   type Call,
   hasCode,
   loadSigner,
   optionalAddress,
   optionalEnv,
-  sendSponsoredCalls,
+  sendCalls,
 } from "./lib/sponsored.js";
-import {
-  type Address,
-  type Hex,
-  getAddress,
-  isHex,
-  size,
-  zeroHash,
-} from "viem";
+import { type Address, getAddress } from "viem";
+import { assertCreateX, loadSalt } from "./lib/createx.js";
 import { planFactoryDeployment } from "./lib/factory-deployment.js";
 import { CONTRACTS, verifyAll } from "./lib/verify.js";
+import { updateRecord } from "./lib/records.js";
 import { readFile } from "node:fs/promises";
 import hre from "hardhat";
-import { CREATE2_DEPLOYER } from "./lib/constants.js";
-import { updateRecord } from "./lib/records.js";
 
 const ignitionOperator = async (): Promise<Address | undefined> => {
   const path = "../ignition/parameters/KiteFactory.json";
@@ -49,10 +24,7 @@ const ignitionOperator = async (): Promise<Address | undefined> => {
 };
 
 const signer = loadSigner();
-const salt = optionalEnv<Hex>("SALT") || zeroHash;
-if (!isHex(salt) || size(salt) !== 32) {
-  throw new Error("SALT must be 32 bytes of hex");
-}
+const salt = loadSalt();
 
 const admin = optionalAddress("ADMIN") ?? signer.address;
 const proxyOwner = optionalAddress("PROXY_OWNER") ?? signer.address;
@@ -86,6 +58,8 @@ const plan = planFactoryDeployment({
   admin,
   operator,
   proxyOwner,
+  sender: signer.address,
+  chainId: chain.id,
   salt,
 });
 
@@ -96,15 +70,10 @@ console.log(`Operator:       ${operator ?? "(not set)"}`);
 console.log(`Proxy owner:    ${proxyOwner}`);
 console.log(`Salt:           ${salt}`);
 console.log(`Implementation: ${plan.implementation}`);
-console.log(`Factory:        ${plan.factory} (KiteFactoryProxy, for your Kite server)`);
+console.log(`Factory Proxy:        ${plan.factory}`);
 console.log(`ProxyAdmin:     ${plan.proxyAdmin}\n`);
 
-if (!(await hasCode(publicClient, CREATE2_DEPLOYER))) {
-  throw new Error(
-    `The CREATE2 deployer ${CREATE2_DEPLOYER} is not on chain ${chain.id}. ` +
-      "See github.com/Arachnid/deterministic-deployment-proxy to deploy it first.",
-  );
-}
+await assertCreateX(publicClient);
 
 let txHash;
 if (await hasCode(publicClient, plan.factory)) {
@@ -120,7 +89,7 @@ if (await hasCode(publicClient, plan.factory)) {
 
   calls.push(plan.factoryCall);
 
-  txHash = await sendSponsoredCalls(chain, calls);
+  txHash = await sendCalls(connection, calls);
 
   for (const address of [plan.implementation, plan.factory, plan.proxyAdmin]) {
     if (!(await hasCode(publicClient, address))) {

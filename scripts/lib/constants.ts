@@ -2,16 +2,9 @@ import { type Address, type Hex } from "viem";
 
 /**
  *
- * @see https://github.com/Arachnid/deterministic-deployment-proxy
+ * @see https://github.com/pcaversaccio/createx
  */
-export const CREATE2_DEPLOYER: Address = "0x4e59b44847b379578588920cA78FbF26c0B4956C";
-
-/**
- *
- * runtime code of the deterministic deployment proxy at CREATE2_DEPLOYER
- */
-export const CREATE2_DEPLOYER_CODE: Hex =
-  "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3";
+export const CREATE_X: Address = "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed";
 
 /**
  *

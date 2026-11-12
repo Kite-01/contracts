@@ -2,11 +2,14 @@ import {
   alchemyWalletTransport,
   createSmartWalletClient,
 } from "@alchemy/wallet-apis";
+import { type NetworkConnection } from "hardhat/types/network";
 import {
   type Address,
   type Chain,
   type Hex,
   type PublicClient,
+  createWalletClient,
+  custom,
   getAddress,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -76,4 +79,46 @@ export async function sendSponsoredCalls(chain: Chain, calls: Call[]) {
   }
 
   return hash;
+}
+
+export async function sendDirectCalls(
+  connection: NetworkConnection,
+  calls: Call[],
+) {
+  const publicClient = await connection.viem.getPublicClient();
+  const walletClient = createWalletClient({
+    account: loadSigner(),
+    chain: publicClient.chain,
+    transport: custom(connection.provider),
+  });
+
+  console.log(
+    `Sending ${calls.length} transaction(s) from ${walletClient.account.address}, paying gas yourself...`,
+  );
+
+  let hash: Hex | undefined;
+  for (const [index, call] of calls.entries()) {
+    hash = await walletClient.sendTransaction(call);
+    const receipt = await publicClient.waitForTransactionReceipt({
+      hash,
+      timeout: 300_000,
+    });
+
+    if (receipt.status !== "success") {
+      throw new Error(`Transaction ${index + 1} reverted (tx ${hash})`);
+    }
+
+    console.log(`  ${index + 1}/${calls.length}: ${hash}`);
+  }
+
+  return hash;
+}
+
+export async function sendCalls(connection: NetworkConnection, calls: Call[]) {
+  if (optionalEnv("SPONSOR") === "false") {
+    return sendDirectCalls(connection, calls);
+  }
+
+  const publicClient = await connection.viem.getPublicClient();
+  return sendSponsoredCalls(publicClient.chain, calls);
 }

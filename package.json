@@ -46,7 +46,9 @@
     "upgrade-kite:mainnet": "npm run upgrade-kite -- --network mainnet --verify",
     "deploy-factory:7702": "hardhat run --network mainnet scripts/deploy-factory-7702.ts",
     "upgrade-factory:7702": "hardhat run --network mainnet scripts/upgrade-factory-7702.ts",
-    "upgrade-kite:7702": "hardhat run --network mainnet scripts/upgrade-kite-7702.ts"
+    "upgrade-kite:7702": "hardhat run --network mainnet scripts/upgrade-kite-7702.ts",
+    "deploy-factory:mainnet:multichain": "bash scripts_sh/deploy-factory.sh",
+    "deploy-factory:7702:multichain": "bash scripts_sh/deploy-factory-7702.sh"
   },
   "devDependencies": {
     "@alchemy/wallet-apis": "^5.3.0",

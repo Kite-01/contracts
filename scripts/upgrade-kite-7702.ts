@@ -1,37 +1,22 @@
-/**
- * Ships the Kite code in this repository to a KiteFactory.
- * In one transaction it deploys the new Kite implementation through the CREATE2 deployer (if it is
- * not there yet) and calls KiteFactory.setImplementation. Your EOA must hold DEFAULT_ADMIN_ROLE.
- * Only transfers created afterwards use the new code.
- *
- *   npm run upgrade-kite:7702
- *
- * Environment:
- *   FACTORY                     The KiteFactory proxy address (defaults to KiteFactoryProxy in
- *                               deployments/7702/chain-<chain id>.json)
- *   PRIVATE_KEY, ALCHEMY_API_KEY, ALCHEMY_GAS_POLICY_ID   As for deploy-factory-7702.ts
- *   SALT                        CREATE2 salt for the new implementation (defaults to 0x00…00)
- *   ALLOW_SAME_IMPLEMENTATION   Set to "true" to upgrade even if the factory already runs this code
- *   VERIFY                      Set to "false" to skip verifying the new implementation
- */
-import { isAddressEqual, isHex, size, zeroHash } from "viem";
 import {
   type Call,
   hasCode,
   loadSigner,
   optionalAddress,
   optionalEnv,
-  sendSponsoredCalls,
+  sendCalls,
 } from "./lib/sponsored.js";
+import {
+  factoryAddress as resolveFactory,
+  updateRecord,
+} from "./lib/records.js";
+import { assertCreateX, loadSalt } from "./lib/createx.js";
 import { CONTRACTS, verifyAll } from "./lib/verify.js";
 import { planKiteUpgrade } from "./lib/factory-deployment.js";
-import { factoryAddress as resolveFactory, updateRecord } from "./lib/records.js";
+import { isAddressEqual } from "viem";
 import hre from "hardhat";
 
-const salt = optionalEnv("SALT") || zeroHash;
-if (!isHex(salt) || size(salt) !== 32) {
-  throw new Error("SALT must be 32 bytes of hex");
-}
+const salt = loadSalt();
 
 const signer = loadSigner();
 const connection = await hre.network.create();
@@ -39,6 +24,7 @@ const connection = await hre.network.create();
 const { viem } = connection;
 const publicClient = await viem.getPublicClient();
 const chain = publicClient.chain;
+await assertCreateX(publicClient);
 const factoryAddress = await resolveFactory(
   chain.id,
   optionalAddress("FACTORY"),
@@ -56,6 +42,8 @@ const plan = planKiteUpgrade({
   kite: { abi: kite.abi, bytecode: kite.bytecode },
   kiteFactory: { abi: kiteFactory.abi, bytecode: kiteFactory.bytecode },
   factory: factoryAddress,
+  sender: signer.address,
+  chainId: chain.id,
   salt,
 });
 
@@ -78,7 +66,6 @@ if (!isAdmin) {
   );
 }
 
-// The runtime code the new implementation would have, to compare with the current one
 const { data: newCode } = await publicClient.call({ data: plan.initCode });
 const currentCode = await publicClient.getCode({
   address: currentImplementation,
@@ -102,7 +89,7 @@ if (unchanged && optionalEnv("ALLOW_SAME_IMPLEMENTATION") !== "true") {
 
   calls.push(plan.setImplementationCall);
 
-  const txHash = await sendSponsoredCalls(chain, calls);
+  const txHash = await sendCalls(connection, calls);
   const implementationAfter = await factory.read.implementation();
   if (!isAddressEqual(implementationAfter, plan.implementation)) {
     throw new Error(
@@ -116,7 +103,10 @@ if (unchanged && optionalEnv("ALLOW_SAME_IMPLEMENTATION") !== "true") {
 
   await updateRecord(
     chain.id,
-    { KiteFactoryProxy: factoryAddress, KiteImplementation: plan.implementation },
+    {
+      KiteFactoryProxy: factoryAddress,
+      KiteImplementation: plan.implementation,
+    },
     { action: "upgrade-kite", hash: txHash },
   );
 }

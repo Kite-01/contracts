@@ -1,45 +1,20 @@
-/**
- * Upgrades a KiteFactory proxy to the KiteFactory code in this repository
- * In one transaction it deploys the new implementation through the CREATE2 deployer (if it is not
- * there yet) and calls ProxyAdmin.upgradeAndCall. Your EOA must own the ProxyAdmin.
- *
- *   npm run upgrade-factory:7702
- *
- * Environment:
- *   FACTORY                     The KiteFactory proxy address (defaults to KiteFactoryProxy in
- *                               deployments/7702/chain-<chain id>.json)
- *   PRIVATE_KEY, ALCHEMY_API_KEY, ALCHEMY_GAS_POLICY_ID   As for deploy-factory-7702.ts
- *   SALT                        CREATE2 salt for the new implementation (defaults to 0x00…00)
- *   ALLOW_SAME_IMPLEMENTATION   Set to "true" to upgrade even if the proxy already runs this code
- *   VERIFY                      Set to "false" to skip verifying the new implementation
- */
-import {
-  type Address,
-  type Hex,
-  getAddress,
-  isAddressEqual,
-  isHex,
-  size,
-  zeroHash,
-} from "viem";
 import {
   type Call,
   hasCode,
   loadSigner,
   optionalAddress,
   optionalEnv,
-  sendSponsoredCalls,
+  sendCalls,
 } from "./lib/sponsored.js";
+import { type Address, type Hex, getAddress, isAddressEqual } from "viem";
 import { ADMIN_SLOT, IMPLEMENTATION_SLOT } from "./lib/constants.js";
+import { factoryAddress, updateRecord } from "./lib/records.js";
+import { assertCreateX, loadSalt } from "./lib/createx.js";
 import { CONTRACTS, verifyAll } from "./lib/verify.js";
 import { planFactoryUpgrade } from "./lib/factory-deployment.js";
-import { factoryAddress, updateRecord } from "./lib/records.js";
 import hre from "hardhat";
 
-const salt = optionalEnv("SALT") || zeroHash;
-if (!isHex(salt) || size(salt) !== 32) {
-  throw new Error("SALT must be 32 bytes of hex");
-}
+const salt = loadSalt();
 
 const signer = loadSigner();
 const connection = await hre.network.create();
@@ -47,6 +22,7 @@ const connection = await hre.network.create();
 const { viem } = connection;
 const publicClient = await viem.getPublicClient();
 const chain = publicClient.chain;
+await assertCreateX(publicClient);
 const factory = await factoryAddress(chain.id, optionalAddress("FACTORY"));
 
 const readSlotAddress = async (slot: Hex): Promise<Address> => {
@@ -79,6 +55,8 @@ const plan = planFactoryUpgrade({
   },
   factory,
   proxyAdminAddress,
+  sender: signer.address,
+  chainId: chain.id,
   salt,
 });
 
@@ -114,7 +92,7 @@ if (
 
   calls.push(plan.upgradeCall);
 
-  const txHash = await sendSponsoredCalls(chain, calls);
+  const txHash = await sendCalls(connection, calls);
   const implementationAfter = await readSlotAddress(IMPLEMENTATION_SLOT);
   if (!isAddressEqual(implementationAfter, plan.implementation)) {
     throw new Error(
@@ -128,7 +106,10 @@ if (
 
   await updateRecord(
     chain.id,
-    { KiteFactoryProxy: factory, KiteFactoryImplementation: plan.implementation },
+    {
+      KiteFactoryProxy: factory,
+      KiteFactoryImplementation: plan.implementation,
+    },
     { action: "upgrade-factory", hash: txHash },
   );
 }

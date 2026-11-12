@@ -91,6 +91,75 @@ async function enabledProviders(
   return providers;
 }
 
+const UNAVAILABLE =
+  /HHE80027|block explorer is configured|status code 40[13]|not supported|invalid api key|missing api key/i;
+const TRANSIENT =
+  /does not have bytecode|has no bytecode|no contract code|not (yet )?deployed|not found|unable to locate|rate limit|status code (429|5\d\d)|fetch failed|ECONN|ETIMEDOUT|socket|network/i;
+
+async function verifyOne(
+  hre: HardhatRuntimeEnvironment,
+  provider: Provider,
+  { name, address, contract, constructorArgs }: Required<ContractToVerify>,
+  {
+    attempts,
+    delayMs,
+    timeoutMs,
+  }: { attempts: number; delayMs: number; timeoutMs: number },
+): Promise<"verified" | "failed" | "unavailable"> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await withTimeout(
+        verifyContract(
+          {
+            address,
+            contract,
+            constructorArgs,
+            provider,
+          },
+          hre,
+        ),
+        timeoutMs,
+      );
+
+      console.log(`[${provider}] Verified ${name} at ${address}`);
+      return "verified";
+    } catch (error) {
+      const message = (
+        error instanceof Error ? error.message : String(error)
+      ).split("\n")[0];
+
+      if (message.startsWith("no result after")) {
+        // The explorer accepted the source but hasn't processed it (e.g. Etherscan's
+        // "Pending in queue"). Resubmitting only queues it again, so move on.
+        console.error(
+          `[${provider}] ${name} at ${address} is still in the explorer's queue after ${
+            timeoutMs / 1000
+          }s; it may verify on its own later`,
+        );
+        return "failed";
+      }
+
+      if (UNAVAILABLE.test(message)) {
+        console.error(`[${provider}] Could not verify ${name}: ${message}`);
+        return "unavailable";
+      }
+
+      if (!TRANSIENT.test(message) || attempt >= attempts) {
+        console.error(
+          `[${provider}] Could not verify ${name} at ${address}: ${message}`,
+        );
+        return "failed";
+      }
+
+      console.log(
+        `[${provider}] ${name}: attempt ${attempt}/${attempts} failed (${message}), retrying`,
+      );
+
+      await sleep(delayMs);
+    }
+  }
+}
+
 export async function verifyAll(
   hre: HardhatRuntimeEnvironment,
   chainId: number,
@@ -102,55 +171,26 @@ export async function verifyAll(
 
   for (const provider of providers) {
     for (const { name, address, contract, constructorArgs = [] } of contracts) {
-      for (let attempt = 1; ; attempt++) {
-        try {
-          await withTimeout(
-            verifyContract(
-              {
-                address,
-                contract,
-                constructorArgs,
-                provider,
-              },
-              hre,
-            ),
-            timeoutMs,
-          );
+      const outcome = await verifyOne(
+        hre,
+        provider,
+        {
+          name,
+          address,
+          contract,
+          constructorArgs,
+        },
+        { attempts, delayMs, timeoutMs },
+      );
 
-          console.log(`[${provider}] Verified ${name} at ${address}`);
-          break;
-        } catch (error) {
-          const message = (
-            error instanceof Error ? error.message : String(error)
-          ).split("\n")[0];
+      if (outcome === "verified") continue;
+      allVerified = false;
 
-          if (message.startsWith("no result after")) {
-            // The explorer accepted the source but hasn't processed it (e.g. Etherscan's
-            // "Pending in queue"). Resubmitting only queues it again, so move on.
-            console.error(
-              `[${provider}] ${name} at ${address} is still in the explorer's queue after ${timeoutMs / 1000}s; it may verify on its own later`,
-            );
-
-            allVerified = false;
-            break;
-          }
-
-          const refused = /status code 40[13]|not supported/i.test(message);
-          if (refused || attempt >= attempts) {
-            console.error(
-              `[${provider}] Could not verify ${name} at ${address}: ${message}`,
-            );
-
-            allVerified = false;
-            break;
-          }
-
-          console.log(
-            `[${provider}] ${name}: attempt ${attempt}/${attempts} failed (${message}), retrying`,
-          );
-
-          await sleep(delayMs);
-        }
+      if (outcome === "unavailable") {
+        console.error(
+          `[${provider}] Skipping the rest: ${provider} can't verify on chain ${chainId}`,
+        );
+        break;
       }
     }
   }

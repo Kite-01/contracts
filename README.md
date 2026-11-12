@@ -121,9 +121,9 @@ Both verify what they deploy. They use Ignition's default strategy; add `--strat
 
 ### Deploying without gas (EIP-7702 + Alchemy)
 
-Your EOA can deploy and upgrade without holding any ETH: it's delegated to Alchemy's smart account with EIP-7702, and an Alchemy gas policy pays. Everything goes through the CREATE2 deployer at `0x4e59b44847b379578588920cA78FbF26c0B4956C`, so the same settings give the same factory address on every chain. That's a different deployer from CreateX, so these addresses differ from `deploy-factory:mainnet`'s: pick one way per factory.
+Your EOA can deploy and upgrade without holding any ETH: it's delegated to Alchemy's smart account with EIP-7702, and an Alchemy gas policy pays. Everything goes through [CreateX](https://github.com/pcaversaccio/createx) with the `IGNITION_SALT` salt, exactly as Ignition's `create2` strategy does, so the same EOA, salt and parameters give the same addresses as `deploy-factory:mainnet`, on every chain. You can deploy with one and upgrade with the other.
 
-Set `FORK_URL`, `PRIVATE_KEY`, `ALCHEMY_API_KEY` and `ALCHEMY_GAS_POLICY_ID` (a policy covering the chain, with EIP-7702 enabled). Admin and proxy owner default to your EOA and the operator to `ignition/parameters/KiteFactory.json`; override them with `ADMIN`, `OPERATOR`, `PROXY_OWNER` and `SALT`, and keep them identical across chains to keep the address.
+Set `FORK_URL`, `PRIVATE_KEY`, `ALCHEMY_API_KEY` and `ALCHEMY_GAS_POLICY_ID` (a policy covering the chain, with EIP-7702 enabled). Admin and proxy owner default to your EOA and the operator to `ignition/parameters/KiteFactory.json`; override them with `ADMIN`, `OPERATOR` and `PROXY_OWNER`, and keep them and `IGNITION_SALT` identical across chains to keep the address. Ignition always makes the deploying account the proxy owner, so leave `PROXY_OWNER` unset to match it.
 
 ```sh
 npm run deploy-factory:7702
@@ -137,9 +137,26 @@ npm run upgrade-kite:7702
 
 Each script saves what's deployed on the chain to `deployments/7702/chain-<chain id>.json`, along with its transactions. Configure your Kite server with `KiteFactoryProxy` from that file: it's the factory's address, and upgrades don't change it. The upgrades read it from there too; set `FACTORY` to upgrade a factory the file doesn't name.
 
+Set `SPONSOR=false` to send the same calls as ordinary transactions from your EOA instead, paying gas yourself; the addresses don't change. Use it where the sponsored path fails, such as Sepolia, whose Glamsterdam gas pricing Alchemy's gas estimation doesn't handle yet.
+
 The upgrades skip themselves when the code hasn't changed; set `ALLOW_SAME_IMPLEMENTATION=true` to send them anyway. A new `Kite` only applies to transfers created afterwards (see [Upgrades](#upgrades)).
 
 All three verify what they deployed once they're done, on Etherscan (skipped on chains your plan doesn't cover; the free plan excludes Base), Blockscout and Sourcify. Set `VERIFY=false` to skip it. Rerunning `deploy-factory:7702` with the same settings only verifies.
+
+### Deploying to several chains
+
+Pass one RPC URL per chain, or list them in `FORK_URLS` (comma separated). Each chain runs in turn with that URL as `FORK_URL`; one that fails doesn't stop the others, and a summary lists each chain's `KiteFactoryProxy` at the end. RPC URLs are printed with only their host, so API keys stay out of logs.
+
+```sh
+# with Ignition (deploy-factory:mainnet); args after a second -- go to every Ignition run
+npm run deploy-factory:multichain -- https://rpc-a… https://rpc-b… -- --deployment-id my-kite
+
+# with EIP-7702 (deploy-factory:7702); options come from the environment as usual
+npm run deploy-factory:7702:multichain -- https://rpc-a… https://rpc-b…
+SPONSOR=false FORK_URLS="https://rpc-a…,https://rpc-b…" npm run deploy-factory:7702:multichain
+```
+
+Ignition gets `--deployment-id <id>-<chain id>`, so each chain keeps its own records. With the same EOA and `IGNITION_SALT`, both scripts give the same factory address on every chain, and running one where the other already deployed finds the factory in place. A chain is reported as `PARTIAL` when the factory deployed but a later step, such as Ignition's verification, failed.
 
 ## Project layout
 
@@ -151,6 +168,7 @@ contracts/
   libraries/
   test/              Solidity tests (forge-std)
 scripts/             gasless (EIP-7702) deploy and upgrade scripts
+scripts_sh/          deploy to several chains in one go
 test/                TypeScript tests for the scripts and Ignition modules
 ignition/
   modules/           deployment and upgrade modules

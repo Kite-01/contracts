@@ -25,8 +25,6 @@ export default defineConfig({
   },
   plugins: [hardhatToolboxViemPlugin, hardhatTypechain, hardhatVerify],
   solidity: {
-    // Hardhat derives the production profile (used by `hardhat ignition deploy`) from the version
-    // alone, dropping evmVersion and metadata, so both profiles are spelled out to compile alike
     profiles: {
       default: {
         compilers: [DefaultCompilerSettings],
@@ -73,6 +71,7 @@ export default defineConfig({
   },
   verify: {
     etherscan: {
+      enabled: true,
       apiKey: configVariable("ETHERSCAN_API_KEY"),
     },
     blockscout: {
