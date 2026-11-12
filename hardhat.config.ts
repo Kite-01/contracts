@@ -3,6 +3,7 @@ import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatTypechain from "@nomicfoundation/hardhat-typechain";
 import hardhatVerify from "@nomicfoundation/hardhat-verify";
 import { configVariable, defineConfig } from "hardhat/config";
+import { zeroHash } from "viem";
 
 const DefaultCompilerSettings = {
   version: "0.8.34",
@@ -54,9 +55,22 @@ export default defineConfig({
       accounts: [configVariable("PRIVATE_KEY")],
     },
   },
+  ignition: {
+    strategyConfig: {
+      create2: {
+        salt: process.env.IGNITION_SALT || zeroHash,
+      },
+    },
+  },
   verify: {
     etherscan: {
       apiKey: configVariable("ETHERSCAN_API_KEY"),
+    },
+    blockscout: {
+      enabled: true,
+    },
+    sourcify: {
+      enabled: true,
     },
   },
 });

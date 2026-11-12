@@ -105,6 +105,41 @@ npm run deploy-factory:mainnet -- --deployment-id my-kite-base
 
 Configure your Kite server with `KiteFactoryModule#KiteFactoryProxy` from that deployment's `deployed_addresses.json`. It's the factory's address, and upgrades don't change it.
 
+Add `--strategy create2` (or use `deploy-factory:create2`) to deploy through [CreateX](https://github.com/pcaversaccio/createx) instead. The same salt, deployer and parameters then give the same addresses on every chain. The salt is `IGNITION_SALT`, or `0x00…00` when it isn't set.
+
+```sh
+npm run deploy-factory:create2 -- --network mainnet --verify
+```
+
+To upgrade with Ignition, as the `ProxyAdmin` owner (factory code) or the admin (`Kite` code), pass the addresses in a parameters file:
+
+```sh
+# { "KiteFactoryUpgradeModule": { "proxyAdmin": "0x…", "factory": "0x…" } }
+npm run upgrade-factory -- --network mainnet --parameters upgrade.json --verify
+
+# { "KiteImplementationModule": { "factory": "0x…" } }
+npm run upgrade-kite -- --network mainnet --parameters kite.json --verify
+```
+
+Both take `--strategy create2` too. With CreateX, deploying the same code with the same salt twice fails, so only upgrade once the code has changed, or set a new `IGNITION_SALT`.
+
+### Deploying without gas (EIP-7702 + Alchemy)
+
+Your EOA can deploy and upgrade the factory without holding any ETH: it's delegated to Alchemy's smart account with EIP-7702, and an Alchemy gas policy pays. Both contracts go through the CREATE2 deployer at `0x4e59b44847b379578588920cA78FbF26c0B4956C`, so the same settings give the same factory address on every chain.
+
+Set `PRIVATE_KEY`, `ALCHEMY_API_KEY` and `ALCHEMY_GAS_POLICY_ID` (a policy covering the chain, with EIP-7702 enabled). Admin and proxy owner default to your EOA and the operator to `ignition/parameters/KiteFactory.json`; override them with `ADMIN`, `OPERATOR`, `PROXY_OWNER` and `SALT`, and keep them identical across chains to keep the address. Each chain needs a network in `hardhat.config.ts` (`base` is set up).
+
+```sh
+npm run deploy-factory:7702 -- --network base
+
+# deploys the current KiteFactory code and upgrades the proxy to it; your EOA must own the ProxyAdmin
+FACTORY=0x… npm run upgrade-factory:7702 -- --network base
+```
+
+Both verify what they deployed once they're done, on Etherscan (with `ETHERSCAN_API_KEY`, skipped on chains your plan doesn't cover; the free plan excludes Base), Blockscout and Sourcify. Set `VERIFY=false` to skip it. Rerunning `deploy-factory:7702` with the same settings only verifies.
+
+Upgrading only changes the factory code; to ship new `Kite` code, call `setImplementation` as described in [Upgrades](#upgrades).
+
 ## Project layout
 
 ```text
