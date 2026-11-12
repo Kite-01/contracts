@@ -1,5 +1,5 @@
 /**
- *   npm run deploy-factory:7702 -- --network mainnet
+ *   npm run deploy-factory:7702
  *
  * Environment:
  *   PRIVATE_KEY             Your EOA. It is delegated to Alchemy's smart account and sends the calls.
@@ -16,6 +16,7 @@
  * Once deployed, it verifies the contracts. Rerunning it with the same settings skips the deployment and only verifies.
  */
 import {
+  type Call,
   hasCode,
   loadSigner,
   optionalAddress,
@@ -106,7 +107,7 @@ if (!(await hasCode(publicClient, CREATE2_DEPLOYER))) {
 if (await hasCode(publicClient, plan.factory)) {
   console.log("Factory already deployed, skipping to verification.");
 } else {
-  const calls: any[] = [];
+  const calls: Call[] = [];
 
   if (await hasCode(publicClient, plan.implementation)) {
     console.log("Implementation already deployed, skipping it.");

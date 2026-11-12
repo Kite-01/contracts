@@ -131,3 +131,50 @@ export function planFactoryUpgrade({
     },
   };
 }
+
+export interface KiteUpgradeParams {
+  kite: Artifact;
+  kiteFactory: Artifact;
+  /** The KiteFactory proxy the new Kite belongs to */
+  factory: Address;
+  salt?: Hex;
+}
+
+export function planKiteUpgrade({
+  kite,
+  kiteFactory,
+  factory,
+  salt = zeroHash,
+}: KiteUpgradeParams) {
+  const constructorArgs = [factory] as const;
+  const initCode = encodeDeployData({
+    abi: kite.abi,
+    bytecode: kite.bytecode,
+    args: constructorArgs,
+  });
+
+  const implementation = getContractAddress({
+    opcode: "CREATE2",
+    from: CREATE2_DEPLOYER,
+    salt,
+    bytecode: initCode,
+  });
+
+  return {
+    implementation,
+    initCode,
+    constructorArgs,
+    implementationCall: {
+      to: CREATE2_DEPLOYER,
+      data: concat([salt, initCode]),
+    },
+    setImplementationCall: {
+      to: factory,
+      data: encodeFunctionData({
+        abi: kiteFactory.abi,
+        functionName: "setImplementation",
+        args: [implementation],
+      }),
+    },
+  };
+}

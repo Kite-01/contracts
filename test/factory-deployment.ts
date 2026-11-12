@@ -1,11 +1,12 @@
 import {
-  IMPLEMENTATION_SLOT,
   planFactoryDeployment,
   planFactoryUpgrade,
+  planKiteUpgrade,
 } from "../scripts/lib/factory-deployment.js";
 import {
   CREATE2_DEPLOYER,
   CREATE2_DEPLOYER_CODE,
+  IMPLEMENTATION_SLOT,
 } from "../scripts/lib/constants.js";
 import { getAddress, keccak256, toHex } from "viem";
 import { describe, it } from "node:test";
@@ -190,5 +191,74 @@ describe("planFactoryDeployment", async () => {
       await sender.sendTransaction(upgrade.implementationCall);
       await assert.rejects(sender.sendTransaction(upgrade.upgradeCall));
     });
+  });
+});
+
+describe("planKiteUpgrade", async () => {
+  const { viem, networkHelpers } = await hre.network.create();
+  const [sender, admin, operator] = await viem.getWalletClients();
+  const publicClient = await viem.getPublicClient();
+
+  const [kite, kiteFactory, transparentUpgradeableProxy] = await Promise.all([
+    hre.artifacts.readArtifact("Kite"),
+    hre.artifacts.readArtifact("KiteFactory"),
+    hre.artifacts.readArtifact("TransparentUpgradeableProxy"),
+  ]);
+
+  async function deployFixture() {
+    await networkHelpers.setCode(CREATE2_DEPLOYER, CREATE2_DEPLOYER_CODE);
+
+    const plan = planFactoryDeployment({
+      kiteFactory: { abi: kiteFactory.abi, bytecode: kiteFactory.bytecode },
+      transparentUpgradeableProxy: {
+        abi: transparentUpgradeableProxy.abi,
+        bytecode: transparentUpgradeableProxy.bytecode,
+      },
+      admin: admin.account.address,
+      operator: operator.account.address,
+      proxyOwner: admin.account.address,
+    });
+
+    for (const call of [plan.implementationCall, plan.factoryCall]) {
+      await publicClient.waitForTransactionReceipt({
+        hash: await sender.sendTransaction(call),
+      });
+    }
+
+    const upgrade = planKiteUpgrade({
+      kite: { abi: kite.abi, bytecode: kite.bytecode },
+      kiteFactory: { abi: kiteFactory.abi, bytecode: kiteFactory.bytecode },
+      factory: plan.factory,
+    });
+
+    return { plan, upgrade };
+  }
+
+  it("deploys the new Kite and points the factory at it", async () => {
+    const { plan, upgrade } = await networkHelpers.loadFixture(deployFixture);
+    const factory = await viem.getContractAt("KiteFactory", plan.factory);
+    const previous = await factory.read.implementation();
+
+    for (const call of [upgrade.implementationCall, upgrade.setImplementationCall]) {
+      await publicClient.waitForTransactionReceipt({
+        hash: await admin.sendTransaction(call),
+      });
+    }
+
+    assert.equal(await factory.read.implementation(), upgrade.implementation);
+    assert.equal(await factory.read.isImplementation([previous]), true);
+
+    const newKite = await viem.getContractAt("Kite", upgrade.implementation);
+    assert.equal(getAddress(await newKite.read.factory()), plan.factory);
+
+    // Same code as the Kite the factory deployed itself
+    const { data: newCode } = await publicClient.call({ data: upgrade.initCode });
+    assert.equal(newCode, await publicClient.getCode({ address: previous }));
+  });
+
+  it("rejects setImplementation from anyone but the admin", async () => {
+    const { upgrade } = await networkHelpers.loadFixture(deployFixture);
+    await sender.sendTransaction(upgrade.implementationCall);
+    await assert.rejects(sender.sendTransaction(upgrade.setImplementationCall));
   });
 });

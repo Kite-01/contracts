@@ -3,7 +3,7 @@
  * In one transaction it deploys the new implementation through the CREATE2 deployer (if it is not
  * there yet) and calls ProxyAdmin.upgradeAndCall. Your EOA must own the ProxyAdmin.
  *
- *   FACTORY=0x... npm run upgrade-factory:7702 -- --network base
+ *   FACTORY=0x... npm run upgrade-factory:7702
  *
  * Environment:
  *   FACTORY                     The KiteFactory proxy address
@@ -22,6 +22,7 @@ import {
   zeroHash,
 } from "viem";
 import {
+  type Call,
   hasCode,
   loadSigner,
   optionalAddress,
@@ -105,7 +106,7 @@ if (
   console.log("The factory already runs this code, skipping the upgrade.");
   console.log("Set ALLOW_SAME_IMPLEMENTATION=true to send the upgrade anyway.");
 } else {
-  const calls: any[] = [];
+  const calls: Call[] = [];
 
   if (await hasCode(publicClient, plan.implementation)) {
     console.log("New implementation already deployed, skipping it.");

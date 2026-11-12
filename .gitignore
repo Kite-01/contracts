@@ -31,3 +31,5 @@
 /snapshots
 
 .DS_Store
+
+ignition/deployments
